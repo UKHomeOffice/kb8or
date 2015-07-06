@@ -1,0 +1,14 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    methadone (1.9.1)
+      bundler
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  methadone
+
+BUNDLED WITH
+   1.10.2
