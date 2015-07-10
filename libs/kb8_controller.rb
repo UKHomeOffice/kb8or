@@ -10,8 +10,11 @@ class Kb8Controller < Kb8Resource
   ROLLING_UPDATE_CMD = "| kubectl rolling-update %s-v%s -f -"
   RUNNING = 'Running'
 
-  def initialize(yaml_data, file)
+  def initialize(yaml_data, file, container_version_finder)
+
+    # Initialize the base resource
     super(yaml_data, file)
+
     @pods = []
     yaml_data['spec']['selector'].each do |key, value|
       @selector_key = key.to_s
@@ -19,7 +22,12 @@ class Kb8Controller < Kb8Resource
     end
     # Now get the first container and initial version
     yaml_data['spec']['template']['spec']['containers'].each do |item|
-      @pods << Kb8Pod.new(item, self)
+      pod = Kb8Pod.new(item, self)
+      # TODO: Ovewright the version and registry used:
+      version = container_version_finder.get_version(pod.image_name, pod.version)
+      pod.set_version(version)
+      # TODO: Set private registry (if defined)...
+      # pod.set_registry()
     end
   end
 

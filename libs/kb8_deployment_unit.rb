@@ -1,13 +1,12 @@
 class Kb8DeployUnit
 
   attr_accessor :resources,
-                :controller
-  :dir
+                :controller,
+                :dir
 
-  def initialize(dir, container_version_path)
+  def initialize(dir, container_version_finder)
 
     @dir = dir
-    @container_version_path = container_version_path
     @resources = {}
 
     # Load all files and load all data
@@ -20,7 +19,7 @@ class Kb8DeployUnit
             puts "Only one controller supported per application tier"
             exit 1
           else
-            @controller  = Kb8Controller.new(kb8_data, file)
+            @controller  = Kb8Controller.new(kb8_data, file, container_version_finder)
           end
         else
           kb8_resource = Kb8Resource.new(kb8_data, file)

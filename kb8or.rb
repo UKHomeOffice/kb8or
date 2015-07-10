@@ -3,7 +3,7 @@
 # Tool to allow easy deployments on kb8
 # by automating kubectl and managing versions
 # TODO: 1. Parse a deployment file - done
-#       2. Discover if items - done
+#       2. Discover if items exist - done
 #
 #       3. use stdio to stream yaml as input to kubectl when creating items
 #
@@ -21,9 +21,6 @@
 require 'methadone'
 require 'yaml'
 Dir.glob(File.join(File.dirname(__FILE__), 'libs/*.rb')) { |f| require f }
-
-YAML_VERSION_PATH = 'ContainerVersionPath'
-YAML_DEPLOY_PATH = 'path'
 
 class Kb8or
   include Methadone::Main
