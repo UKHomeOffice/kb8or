@@ -1,25 +1,34 @@
+require 'methadone'
+
 class Kb8DeployUnit
 
   attr_accessor :resources,
                 :controller,
-                :dir
+                :context
 
-  def initialize(dir, container_version_finder)
+  include Methadone::Main
+  include Methadone::CLILogging
 
-    @dir = dir
+  def initialize(data, context)
+
+    debug "Loading new context"
+    @context = context.new(data)
+    debug "Got new context"
+    dir = File.join(@context.deployment_home, @context.settings.path)
     @resources = {}
 
     # Load all files and load all data
     actual_dir = File.expand_path(dir)
     Dir["#{actual_dir}/*.yaml"].each do | file |
+      debug "Loading kb8 file:'#{file}'..."
       kb8_data = YAML.load(File.read(file))
       case kb8_data['kind']
         when 'ReplicationController'
           if @controller
-            puts "Only one controller supported per application tier"
+            puts 'Only one controller supported per application tier'
             exit 1
           else
-            @controller  = Kb8Controller.new(kb8_data, file, container_version_finder)
+            @controller  = Kb8Controller.new(kb8_data, file, @context)
           end
         else
           kb8_resource = Kb8Resource.new(kb8_data, file)
@@ -36,7 +45,7 @@ class Kb8DeployUnit
   end
 
   def deploy
-    # Will check if all the objects exist in the cluster or not...
+    # TODO: Will check if all the objects exist in the cluster or not...
     @resources.each do |key, resource_category|
       resource_category.each do |resource|
         if resource.exist?

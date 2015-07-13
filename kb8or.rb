@@ -2,11 +2,7 @@
 
 # Tool to allow easy deployments on kb8
 # by automating kubectl and managing versions
-# TODO: 1. Parse a deployment file - done
-#       2. Discover if items exist - done
-#
-#       3. use stdio to stream yaml as input to kubectl when creating items
-#
+# TODO:
 #       4. Post deploy do pod discovery / status...
 #
 #       5. Update controller to allow for rolling updates
@@ -26,8 +22,8 @@ class Kb8or
   include Methadone::Main
   include Methadone::CLILogging
 
-  version     '0.1.0'
-  description 'Will create OR update a kb8 application'
+  version     '0.1.5'
+  description 'Will create OR update a kb8 application in a re-runnable way'
 
   arg :deploy_file
 
@@ -40,5 +36,6 @@ class Kb8or
     deploy.deploy
   end
 
+  use_log_level_option
   go!
 end

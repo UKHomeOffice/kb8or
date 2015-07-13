@@ -1,16 +1,23 @@
+require 'methadone'
+
 class Kb8Pod
 
   attr_accessor :name,
                 :version,
                 :image_name,
-                :replication_controller
+                :replication_controller,
+                :yaml_data
 
   REGISTRY = '(\S+:[\d]+|\S+\.\S+)'
   VERSION = '(:.*)'
-  IMAGE = '(.*)'
-  NAMESPACE = '(^\w+)'
+  IMAGE = '([a-z0-9_].+)'
+  NAMESPACE = '([a-zA-Z0-9-\_]+)'
+
+  include Methadone::Main
+  include Methadone::CLILogging
 
   def initialize(yaml_data, replication_controller)
+    @yaml_data = yaml_data
     @replication_controller = replication_controller
     @name = yaml_data['name']
     case yaml_data['image']
@@ -31,6 +38,11 @@ class Kb8Pod
         @namespace = $1
         @image_name = $2
         @version = $3
+      when /#{IMAGE}#{VERSION}/
+        @image_name = $1
+        @version = $2
+      when /#{IMAGE}/
+        @image_name = $1
       else
         raise "Invalid image tag in pod #{@name}: #{yaml_data['image']}"
     end
@@ -47,6 +59,7 @@ class Kb8Pod
     end
     image = "#{image}#{@image_name}"
     image = "#{image}:#{@version}" if @version
+    @yaml_data['image'] = image
     image
   end
 
@@ -57,15 +70,47 @@ class Kb8Pod
     unless registry =~ /#{REGISTRY}/
       raise "Invalid registry specified, expecting IP, DNS or port e.g. #{REGISTRY}"
     end
+    debug "Setting registry of pod '#{name}' to '#{registry}'"
     @registry = registry
+    to_yaml
+    true
   end
 
   def set_version(version)
+    debug "Setting version of pod '#{name}' to '#{version}'"
     # TODO: check valid version regexp
     @version = version
+    to_yaml
+    true
   end
 
   def running?(refresh=false)
     @replication_controller.pod_status(@name, refresh)
+  end
+
+  def refresh_data
+    # Access any properties needed to set
+    # any dynamic data...
+    image
+  end
+
+  def to_yaml
+    # Update any data and return the data
+    refresh_data
+    @yaml_data
+  end
+
+  def running(refresh=true)
+    @replication_controller.status(refresh)
+    pod_data = @replication_controller.pod_status_data
+    if pod_data['items'][0]['status'].has_key?('containerStatuses')
+      pod_data['items'][0]['status']['containerStatuses'].each do | container_data |
+        if container_data['name'] == @name
+          return container_data['state'].has_key?('running')
+        end
+      end
+      debug "here..."
+    end
+    return false
   end
 end
