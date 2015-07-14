@@ -17,7 +17,7 @@ class Kb8DeployUnit
     dir = File.join(@context.deployment_home, @context.settings.path)
     @resources = {}
 
-    # Load all files and load all data
+    # Load all kb8 files...
     actual_dir = File.expand_path(dir)
     Dir["#{actual_dir}/*.yaml"].each do | file |
       debug "Loading kb8 file:'#{file}'..."
@@ -25,7 +25,7 @@ class Kb8DeployUnit
       case kb8_data['kind']
         when 'ReplicationController'
           if @controller
-            puts 'Only one controller supported per application tier'
+            puts 'Only one controller supported per application tier (kb8 directory)'
             exit 1
           else
             @controller  = Kb8Controller.new(kb8_data, file, @context)

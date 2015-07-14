@@ -1,7 +1,7 @@
 require 'yaml'
 require 'methadone'
 
-class Kb8orSettings
+class Settings
 
   # TODO: Split this out into separate expected schema settings files...?
 

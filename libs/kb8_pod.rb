@@ -1,116 +1,67 @@
 require 'methadone'
+require_relative 'kb8_controller'
 
 class Kb8Pod
 
-  attr_accessor :name,
-                :version,
-                :image_name,
-                :replication_controller,
-                :yaml_data
+  PHASE_PENDING   = 'Pending'
+  PHASE_RUNNING   = 'Running'
+  PHASE_SUCCEEDED = 'Succeeded'
+  PHASE_FAILED    = 'Failed'
+  PHASE_UNKNOWN   = 'Unknown'
 
-  REGISTRY = '(\S+:[\d]+|\S+\.\S+)'
-  VERSION = '(:.*)'
-  IMAGE = '([a-z0-9_].+)'
-  NAMESPACE = '([a-zA-Z0-9-\_]+)'
+  attr_reader :pod_data,
+              :replication_controller
 
-  include Methadone::Main
-  include Methadone::CLILogging
-
-  def initialize(yaml_data, replication_controller)
-    @yaml_data = yaml_data
+  def initialize(pod_data, replication_controller)
+    @pod_data = pod_data
     @replication_controller = replication_controller
-    @name = yaml_data['name']
-    case yaml_data['image']
-      when /#{REGISTRY}\/#{IMAGE}#{VERSION}/
-        # registry with image and version:
-        @registry = $1
-        @image_name = $2
-        @version = $3
-      when /#{REGISTRY}\/#{IMAGE}/
-        # registry with image and NO version:
-        @registry = $1
-        @image_name = $2
-      when /#{NAMESPACE}\/#{IMAGE}/
-        # namespace with NO version
-        @namespace = $1
-        @image_name = $2
-      when /#{NAMESPACE}\/#{IMAGE}#{VERSION}/
-        @namespace = $1
-        @image_name = $2
-        @version = $3
-      when /#{IMAGE}#{VERSION}/
-        @image_name = $1
-        @version = $2
-      when /#{IMAGE}/
-        @image_name = $1
-      else
-        raise "Invalid image tag in pod #{@name}: #{yaml_data['image']}"
+  end
+
+  def name
+    @pod_data['metadata']['name']
+  end
+
+  def refresh(refresh=true)
+    @replication_controller.refresh_status(refresh)
+
+    all_pod_data = @replication_controller.pod_status_data
+    all_pod_data['items'].each do | possible_pod |
+      if possible_pod['metadata']['name'] == name
+        @pod_data = possible_pod
+      end
     end
   end
 
-  def image
-    # Put back the image name...
-    image = ''
-    if @registry
-      image = @registry + '/'
-    end
-    if @namespace
-      image = @namespace + '/'
-    end
-    image = "#{image}#{@image_name}"
-    image = "#{image}:#{@version}" if @version
-    @yaml_data['image'] = image
-    image
+  def phase(refresh=false)
+    refresh(refresh)
+    @pod_data['status']['phase']
   end
 
-  def set_registry(registry)
-    unless @registry
-      raise 'Can only replace images with existing registry server specified'
-    end
-    unless registry =~ /#{REGISTRY}/
-      raise "Invalid registry specified, expecting IP, DNS or port e.g. #{REGISTRY}"
-    end
-    debug "Setting registry of pod '#{name}' to '#{registry}'"
-    @registry = registry
-    to_yaml
-    true
-  end
+  def containers_health(container_data)
+    # TODO: work out if any container is just restarting!
+    refresh(refresh)
 
-  def set_version(version)
-    debug "Setting version of pod '#{name}' to '#{version}'"
-    # TODO: check valid version regexp
-    @version = version
-    to_yaml
-    true
-  end
-
-  def running?(refresh=false)
-    @replication_controller.pod_status(@name, refresh)
-  end
-
-  def refresh_data
-    # Access any properties needed to set
-    # any dynamic data...
-    image
-  end
-
-  def to_yaml
-    # Update any data and return the data
-    refresh_data
-    @yaml_data
-  end
-
-  def running(refresh=true)
-    @replication_controller.status(refresh)
-    pod_data = @replication_controller.pod_status_data
-    if pod_data['items'][0]['status'].has_key?('containerStatuses')
-      pod_data['items'][0]['status']['containerStatuses'].each do | container_data |
-        if container_data['name'] == @name
-          return container_data['state'].has_key?('running')
+    if @pod_data['status'].has_key?('containerStatuses')
+      @pod_data['items'][0]['status']['containerStatuses'].each do | container_data |
+        # Only update aggregate running state at end
+        # Only update all_running flag if the aggregate state isn't already changed
+        if aggregate_status == STATUS_UNKNOWN
+          if container_data['state'].has_key?(STATUS_RUNNING)
+            all_running = true
+          end
+        end
+        if container_data['state'].has_key?(STATUS_WAITING)
+          # TODO check restart count here...?
+          aggregate_status = STATUS_WAITING unless aggregate_status == STATUS_TERMINATED
+        end
+        if container_data['state'].has_key?(STATUS_TERMINATED)
+          aggregate_status = STATUS_TERMINATED
         end
       end
-      debug "here..."
+      if aggregate_status == STATUS_UNKNOWN and all_running
+        return STATUS_RUNNING
+      end
     end
-    return false
+    return aggregate_status
   end
 end
