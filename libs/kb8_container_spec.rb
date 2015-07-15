@@ -2,19 +2,19 @@ require 'methadone'
 
 class Kb8ContainerSpec
 
-  attr_accessor :name,
-                :version,
-                :image_name,
-                :replication_controller,
-                :yaml_data
+  include Methadone::Main
+  include Methadone::CLILogging
 
   REGISTRY = '(\S+:[\d]+|\S+\.\S+)'
   VERSION = '(:.*)'
   IMAGE = '([a-z0-9_].+)'
   NAMESPACE = '([a-zA-Z0-9-\_]+)'
 
-  include Methadone::Main
-  include Methadone::CLILogging
+  attr_accessor :name,
+                :version,
+                :image_name,
+                :replication_controller,
+                :yaml_data
 
   def initialize(yaml_data, replication_controller)
     @yaml_data = yaml_data

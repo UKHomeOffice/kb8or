@@ -1,8 +1,12 @@
+require 'methadone'
 require_relative 'kb8_resource'
 require_relative 'kb8_container_spec'
 require_relative 'kb8_pod'
 
 class Kb8Controller < Kb8Resource
+
+  include Methadone::Main
+  include Methadone::CLILogging
 
   attr_accessor :selector_key,
                 :selector_value,
@@ -26,7 +30,7 @@ class Kb8Controller < Kb8Resource
       break
       #TODO: handle more than one set of selectors e.g. versions?
     end
-    @intended_replicas = yaml_data['spec']['selector']
+    @intended_replicas = yaml_data['spec']['replicas']
 
     # Now get the containers and set versions and private registry where applicable
     yaml_data['spec']['template']['spec']['containers'].each do |item|
@@ -47,7 +51,6 @@ class Kb8Controller < Kb8Resource
       refresh = true
     end
     if refresh
-      debug 'Checking pod status...'
       @pod_status_data = Kb8Run.get_pod_status(selector_key, selector_value)
     end
   end
@@ -59,40 +62,47 @@ class Kb8Controller < Kb8Resource
 
     # TODO: rewrite as health method / object...
     # Now wait until the pods are all running or one...
+    phase_status = Kb8Pod::PHASE_UNKNOWN
+    print "Waiting for controller #{@name}"
+    $stdout.flush
     loop do
-      $stdout.flush
-      print "Waiting for controller #{@name}"
+      # TODO: add a timeout option (or options for differing states...)
       sleep 1
+      # Tidy sdtout when debugging...
+      debug "\n"
 
       phase_status = aggregate_phase(true)
-      debug "Controller status:#{status}"
+      debug "Aggregate pod status:#{phase_status}"
       print '.'
       $stdout.flush
-      break if phase_status != Kb8Pod::PHASE_PENDING
+      break if phase_status != Kb8Pod::PHASE_PENDING &&
+               phase_status != Kb8Pod::PHASE_UNKNOWN
     end
+    # add new line after content above...
+    puts ''
     if phase_status == Kb8Pod::PHASE_FAILED
       # TODO: some troubleshooting - at least show the logs!
       puts "Controller #{@name} entered failed state!"
       exit 1
     end
 
-    # Now check health of pods...
+    # Now check health of all pods...
     failed_pods = []
-    @container_specs.each do | pod |
+    condition = Kb8Pod::CONDITION_NOT_READY
+    @pods.each do | pod |
       print "Waiting for #{pod.name}"
+      $stdout.flush
       loop do
-        $stdout.flush
         sleep 1
-
-        pod_phase_status = pod.containers_state(true)
-        debug "Pod status:#{pod_phase_status}"
+        condition = pod.condition(true)
         print '.'
         $stdout.flush
-        if pod_phase_status != Kb8ContainerSpec::STATUS_WAITING ||
-           pod_phase_status == Kb8ContainerSpec::STATUS_UNKNOWN
-          failed_pods << pod
-          break
-        end
+        break if condition != Kb8Pod::CONDITION_NOT_READY
+      end
+      if condition == Kb8Pod::CONDITION_READY
+        debug "All good for #{pod.name}"
+      else
+        failed_pods << pod
       end
     end
     unless failed_pods.count < 1
@@ -106,12 +116,21 @@ class Kb8Controller < Kb8Resource
     refresh_status(refresh)
 
     if refresh || (!@pods)
+      debug "Reloading pod data..."
       # First get all the pods...
       @actual_replicas = @pod_status_data['items'].count
+      debug "Actual pods running:#{@actual_replicas}"
+      debug "Intended pods running:#{@intended_replicas}"
+
+      @pods = []
       if @actual_replicas == @intended_replicas
+        debug "All replicas loaded..."
         @pod_status_data['items'].each do | pod |
-          @pods << Kb8Pod(pod, self)
+          @pods << Kb8Pod.new(pod, self)
         end
+        debug "All pods loaded..."
+      else
+        debug "Invalid number of replicas - need we wait?"
       end
     end
   end
@@ -128,24 +147,25 @@ class Kb8Controller < Kb8Resource
     # If ALL PODS Running, return Running
     # if ANY Failed set to Failed
     # If ANY Pending set to Pending (unless any set to Failed)
+    get_pod_data(refresh)
     aggregate_phase = Kb8Pod::PHASE_UNKNOWN
     running_count = 0
 
     @pods.each do | pod |
-      if aggregate_status == Kb8Pod::PHASE_UNKNOWN
+      if aggregate_phase == Kb8Pod::PHASE_UNKNOWN
         if pod.phase == Kb8Pod::PHASE_RUNNING
           # TODO check restart count here...?
           running_count = running_count + 1
         end
         if pod.phase == Kb8Pod::PHASE_PENDING
-          aggregate_status = Kb8Pod::PHASE_PENDING unless aggregate_status == Kb8Pod::PHASE_FAILED
+          aggregate_phase = Kb8Pod::PHASE_PENDING unless aggregate_phase == Kb8Pod::PHASE_FAILED
         end
         if pod.phase == Kb8Pod::PHASE_FAILED
-          aggregate_status = Kb8Pod::PHASE_FAILED
+          aggregate_phase = Kb8Pod::PHASE_FAILED
         end
       end
     end
-    if aggregate_status == Kb8Pod::PHASE_UNKNOWN && running_count == @pods.count
+    if aggregate_phase == Kb8Pod::PHASE_UNKNOWN && running_count == @pods.count
       return Kb8Pod::PHASE_RUNNING
     end
     Kb8Pod::PHASE_UNKNOWN
