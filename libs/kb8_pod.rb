@@ -56,7 +56,6 @@ class Kb8Pod
 
   def condition(refresh=true)
 
-    debug "here too"
     # TODO: work out if any container is healthy or just restarting!
     condition_value = Kb8Pod::CONDITION_NOT_READY
 

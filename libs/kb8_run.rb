@@ -5,10 +5,10 @@ class Kb8Run
   include Methadone::Main
   include Methadone::CLILogging
 
-  CMD_ROLLING_UPDATE = 'kubectl rolling-update %s-v%s -f -'
+  CMD_ROLLING_UPDATE = 'kubectl --api-version="v1beta3" rolling-update %s-v%s -f -'
   CMD_CREATE = 'kubectl create -f -'
-  CMD_GET_POD = 'kubectl get pods -l %s=%s -o yaml'
-  CMD_GET_EVENTS = 'kubectl get events -o yaml'
+  CMD_GET_POD = 'kubectl --api-version="v1beta3" get pods -l %s=%s -o yaml'
+  CMD_GET_EVENTS = 'kubectl --api-version="v1beta3" get events -o yaml'
 
   def self.run(cmd, capture=false, term_output=true, input=nil)
 
