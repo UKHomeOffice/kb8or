@@ -13,12 +13,10 @@ class Kb8ContainerSpec
   attr_accessor :name,
                 :version,
                 :image_name,
-                :replication_controller,
                 :yaml_data
 
-  def initialize(yaml_data, replication_controller)
+  def initialize(yaml_data)
     @yaml_data = yaml_data
-    @replication_controller = replication_controller
     @name = yaml_data['name']
     case yaml_data['image']
       when /#{REGISTRY}\/#{IMAGE}#{VERSION}/

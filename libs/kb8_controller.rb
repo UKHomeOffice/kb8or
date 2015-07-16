@@ -21,6 +21,7 @@ class Kb8Controller < Kb8Resource
     # Initialize the base kb8 resource
     super(yaml_data, file)
 
+    @pods = []
     @container_specs = []
 
     # Initialise the selectors used to find relevant pods
@@ -34,7 +35,7 @@ class Kb8Controller < Kb8Resource
 
     # Now get the containers and set versions and private registry where applicable
     yaml_data['spec']['template']['spec']['containers'].each do |item|
-      container = Kb8ContainerSpec.new(item, self)
+      container = Kb8ContainerSpec.new(item)
       if context.container_version_finder
         # Overwrite the version and registry used:
         version = context.container_version_finder.get_version(container.image_name, container.version)
@@ -83,6 +84,9 @@ class Kb8Controller < Kb8Resource
     if phase_status == Kb8Pod::PHASE_FAILED
       # TODO: some troubleshooting - at least show the logs!
       puts "Controller #{@name} entered failed state!"
+      @pods.each do | pod |
+        puts "Pod:#{pod.name}, status:#{pod.error_message}" if pod.error_message
+      end
       exit 1
     end
 
@@ -152,22 +156,28 @@ class Kb8Controller < Kb8Resource
     running_count = 0
 
     @pods.each do | pod |
-      if aggregate_phase == Kb8Pod::PHASE_UNKNOWN
-        if pod.phase == Kb8Pod::PHASE_RUNNING
+      debug "Phase:#{pod.phase}"
+      case pod.phase
+        when Kb8Pod::PHASE_RUNNING
           # TODO check restart count here...?
           running_count = running_count + 1
-        end
-        if pod.phase == Kb8Pod::PHASE_PENDING
-          aggregate_phase = Kb8Pod::PHASE_PENDING unless aggregate_phase == Kb8Pod::PHASE_FAILED
-        end
-        if pod.phase == Kb8Pod::PHASE_FAILED
+        when Kb8Pod::PHASE_FAILED
           aggregate_phase = Kb8Pod::PHASE_FAILED
-        end
+        when Kb8Pod::PHASE_PENDING
+          # check pod conditions...
+          condition = pod.condition(false)
+          if condition == Kb8Pod::CONDITION_ERR_WAIT
+            aggregate_phase = Kb8Pod::PHASE_FAILED
+          end
+          aggregate_phase = Kb8Pod::PHASE_PENDING unless aggregate_phase == Kb8Pod::PHASE_FAILED
+        else
+          # Nothing to do here...
       end
     end
+    # If the phase has at least been discovered and all pods running, then...
     if aggregate_phase == Kb8Pod::PHASE_UNKNOWN && running_count == @pods.count
-      return Kb8Pod::PHASE_RUNNING
+      aggregate_phase = Kb8Pod::PHASE_RUNNING
     end
-    Kb8Pod::PHASE_UNKNOWN
+    aggregate_phase
   end
 end

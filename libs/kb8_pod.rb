@@ -1,6 +1,7 @@
 require 'methadone'
 require 'json'
 require_relative 'kb8_controller'
+require_relative 'kb8_run'
 
 class Kb8Pod
 
@@ -13,17 +14,21 @@ class Kb8Pod
   PHASE_FAILED    = 'Failed'
   PHASE_UNKNOWN   = 'Unknown'
 
-  CONDITION_NOT_READY  = :not_ready
-  CONDITION_READY      = :ready
-  CONDITION_RESTARTING = :restarting
+  CONDITION_NOT_READY     = :not_ready
+  CONDITION_READY         = :ready
+  CONDITION_RESTARTING    = :restarting
+  CONDITION_ERR_WAIT      = :error_waiting
+
+  MAX_EVENT_ERROR_COUNT = 3
 
   attr_reader :pod_data,
-              :replication_controller
+              :replication_controller,
+              :error_message
 
   def initialize(pod_data, rc)
     debug "setting pod_data=#{pod_data}"
     @pod_data = pod_data
-    @replication_controller = rc
+    @controller = rc
   end
 
   def name
@@ -31,9 +36,9 @@ class Kb8Pod
   end
 
   def refresh(refresh=true)
-    @replication_controller.refresh_status(refresh)
+    @controller.refresh_status(refresh)
 
-    all_pod_data = @replication_controller.pod_status_data
+    all_pod_data = @controller.pod_status_data
 
     all_pod_data['items'].each do | possible_pod |
       debug "name:#{name}"
@@ -51,36 +56,59 @@ class Kb8Pod
 
   def condition(refresh=true)
 
+    debug "here too"
     # TODO: work out if any container is healthy or just restarting!
     condition_value = Kb8Pod::CONDITION_NOT_READY
 
     refresh(refresh)
 
-    unhealthy_containers = []
     debug "Pod-data:#{@pod_data.to_json}"
 
     # Find the 'Ready' condition...
     ready = false
     if @pod_data
       debug "condition:#{@pod_data['status']['Condition']}"
-      @pod_data['status']['Condition'].each do |condition|
-        debug "condition:#{condition}"
-        if condition['type'] == 'Ready'
-          ready = condition['status'] == 'True'
+      if @pod_data['status']['Condition']
+        @pod_data['status']['Condition'].each do |condition|
+          debug "condition:#{condition}"
+          if condition['type'] == 'Ready'
+            ready = condition['status'] == 'True'
+          end
         end
       end
     end
-
+    debug "Ready:#{ready}"
     if ready
       condition_value = Kb8Pod::CONDITION_READY
-
-      # TODO: Check restart count
-      # @pod_data['items'][0]['status']['containerStatuses'].each do | container_data |
-      #
-      # end
-
-
-      # TODO: Decide on other reasons to detect failed readyness (e.g. timeout)
+    end
+    # Ensure things are actually good to go:
+    # Will detect containers having events with reason='failed'
+    debug "Here"
+    if @pod_data['status'].has_key?('containerStatuses')
+      debug "Container status found!"
+      @pod_data['status']['containerStatuses'].each do | container_status |
+        # Verify if we have any errors for this pod
+        # state:
+        #     waiting:
+        #       reason: 'Error: image lev_ords_waf:0.5 not found'
+        debug "Digging into container status #{container_status.to_json}"
+        if container_status['state'].has_key?('waiting')
+          # Now look up to see if any events are in error for this pod...
+          # Assume the last event for this Pod is the only one in play?
+          # TODO: add a refresh model to this...
+          last_event = Kb8Run.get_pod_events(name).last
+          debug "Last event data:#{last_event.to_json}"
+          if last_event && last_event['reason'] == 'failed'
+            debug "Event reason:#{last_event['reason']}, count:#{last_event['count']}"
+            if last_event['count'] >= MAX_EVENT_ERROR_COUNT
+              @error_message = last_event['message']
+              condition_value = Kb8Pod::CONDITION_ERR_WAIT
+            end
+          end
+        end
+      end
+    else
+      debug "No status found here..."
     end
     condition_value
   end

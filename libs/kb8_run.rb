@@ -7,7 +7,8 @@ class Kb8Run
 
   CMD_ROLLING_UPDATE = 'kubectl rolling-update %s-v%s -f -'
   CMD_CREATE = 'kubectl create -f -'
-  GET_POD = 'kubectl get pods -l %s=%s -o yaml'
+  CMD_GET_POD = 'kubectl get pods -l %s=%s -o yaml'
+  CMD_GET_EVENTS = 'kubectl get events -o yaml'
 
   def self.run(cmd, capture=false, term_output=true, input=nil)
 
@@ -41,11 +42,29 @@ class Kb8Run
 
   def self.get_pod_status(selector_key, selector_value)
     debug "Get pods with selector '#{selector_key}' with value:'#{selector_value}'"
-    cmd = GET_POD % [selector_key, selector_value]
+    cmd = CMD_GET_POD % [selector_key, selector_value]
     kb8_out = Kb8Run.run(cmd, true, false)
     debug "Loading YAML data from kubectl:\n#{kb8_out}"
     yaml = YAML.load(kb8_out)
     debug "YAML loaded..."
     yaml
+  end
+
+  # Will get all events for a pod
+  def self.get_pod_events(pod_name)
+    if !pod_name
+      raise "Error - expecting a valid string for pod_name"
+    end
+    kb8_out = Kb8Run.run(CMD_GET_EVENTS, true, false)
+    yaml = YAML.load(kb8_out)
+    relevant_events = []
+    # TODO: work out filters (selectors set by rc's don't work here!!!)
+    yaml['items'].each do |event|
+      event_name = event['involvedObject']['name'].to_s
+      if event_name == pod_name.to_s
+        relevant_events << event
+      end
+    end
+    relevant_events
   end
 end
