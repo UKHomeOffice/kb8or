@@ -6,9 +6,9 @@ class Kb8ContainerSpec
   include Methadone::CLILogging
 
   REGISTRY = '(\S+:[\d]+|\S+\.\S+)'
-  VERSION = '(:.*)'
+  VERSION = ':(.*)'
   IMAGE = '([a-z0-9_].+)'
-  NAMESPACE = '([a-zA-Z0-9-\_]+)'
+  NAMESPACE = '([a-zA-Z0-9\-\_]+)'
 
   attr_accessor :name,
                 :version,

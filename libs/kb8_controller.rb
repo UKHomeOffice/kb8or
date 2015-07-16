@@ -41,6 +41,7 @@ class Kb8Controller < Kb8Resource
         version = context.container_version_finder.get_version(container.image_name, container.version)
         container.set_version(version)
         # Set private registry (if defined)...
+        debug "Private registry:#{context.settings.use_private_registry}"
         container.set_registry(context.settings.private_registry) if context.settings.use_private_registry
       end
       @container_specs << container
