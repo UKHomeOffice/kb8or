@@ -62,7 +62,7 @@ class Kb8DeployUnit
 
     if @controller.exist?
       # Skip upgrades if deployment healthy...
-      if @context.settings.no_automatic_upgrade
+      if @context.settings.no_automatic_upgrade && (!context.always_deploy)
         puts "No automatic upgrade specified for #{@controller.kinds}/#{@controller.name} skipping..."
       else
         puts "#{@controller.kinds}/#{@controller.name} will need to have a rolling updated..."

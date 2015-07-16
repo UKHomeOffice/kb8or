@@ -10,7 +10,7 @@ class Deploy
   include Methadone::Main
   include Methadone::CLILogging
 
-  def initialize(deploy_file)
+  def initialize(deploy_file, always_deploy=false)
 
     @deploy_units = []
     deploy_home = File.dirname(deploy_file)
@@ -32,7 +32,7 @@ class Deploy
     end
 
     # Create a context object for informing each deployment...
-    @context = Context.new(settings, container_version_finder, deploy_home)
+    @context = Context.new(settings, container_version_finder, deploy_home, always_deploy)
 
     # Load deployment information for each 'deploy' (kb8 directory) that exists
     deploy_data['Deploys'].each do | deploy_unit |
