@@ -61,10 +61,15 @@ class Kb8DeployUnit
     end
 
     if @controller.exist?
-      puts "#{@controller.kinds}/#{@controller.name} will need to have a rolling updated..."
-      puts "...for now, re_creating..."
-      controller.re_create
-      puts "...done."
+      # Skip upgrades if deployment healthy...
+      if @context.settings.no_automatic_upgrade
+        puts "No automatic upgrade specified for #{@controller.kinds}/#{@controller.name} skipping..."
+      else
+        puts "#{@controller.kinds}/#{@controller.name} will need to have a rolling updated..."
+        puts "...for now, re_creating..."
+        controller.re_create
+        puts "...done."
+      end
     else
       puts "Creating #{@controller.kinds}/#{@controller.name}..."
       @controller.create

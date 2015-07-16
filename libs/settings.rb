@@ -7,12 +7,14 @@ class Settings
 
   FILE_DEFAULTS = 'defaults.yaml'
 
+  # Simply add attributes to add further settings!
   attr_accessor :container_version_glob_path,
                 :defaults,
                 :defaults_set,
                 :private_registry,
                 :use_private_registry,
-                :path
+                :path,
+                :no_automatic_upgrade
 
   include Methadone::Main
   include Methadone::CLILogging
