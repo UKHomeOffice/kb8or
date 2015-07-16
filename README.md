@@ -1,5 +1,5 @@
 # kb8or
-Contiouse Deployment Tool for deploying with kubernetes
+Continuous Deployment Tool for deploying with kubernetes
 
 ## Features
 Will deploy kubernetes from files intelligently...
