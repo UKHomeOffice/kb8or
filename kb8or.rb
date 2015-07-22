@@ -32,12 +32,16 @@ class Kb8or
       puts "Please supply a valid file name!"
       exit 1
     end
-    deploy = Deploy.new(deploy_file, options[:always_deploy])
+    deploy = Deploy.new(deploy_file, options[:always_deploy], options[:env_name])
     deploy.deploy
   end
 
   opts.on("-a","--always-deploy","Ignore NoAutomaticUpgrade deployment setting") do
     options[:always_deploy] = true
+  end
+
+  opts.on("-e","--env","Specify the environment") do |env_name|
+    options[:env_name] = env_name
   end
 
   use_log_level_option

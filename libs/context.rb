@@ -5,12 +5,13 @@ class Context
   attr_accessor :container_version_finder,
                 :deployment_home,
                 :settings,
-                :always_deploy
+                :always_deploy,
+                :env_name
 
   include Methadone::Main
   include Methadone::CLILogging
 
-  def initialize(settings, container_version_finder, deployment_home, always_deploy=false)
+  def initialize(settings, container_version_finder, deployment_home, always_deploy=false, env_name=nil)
     debug "Creating initial context..."
     @container_version_finder = container_version_finder
     @settings = settings
@@ -19,6 +20,7 @@ class Context
     debug "deployment_home=#{@deployment_home}"
     debug "container_version_finder=#{@container_version_finder}"
     debug "always_deploy=#{@always_deploy}"
+    debug "env_name="
   end
 
   def new(data)

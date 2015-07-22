@@ -10,11 +10,12 @@ class Settings
   # Simply add attributes to add further settings!
   attr_accessor :container_version_glob_path,
                 :defaults,
+                :default_env_name,
                 :defaults_set,
-                :private_registry,
-                :use_private_registry,
+                :no_automatic_upgrade,
                 :path,
-                :no_automatic_upgrade
+                :private_registry,
+                :use_private_registry
 
   include Methadone::Main
   include Methadone::CLILogging

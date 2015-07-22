@@ -9,6 +9,7 @@ class Kb8Run
   CMD_CREATE = 'kubectl create -f -'
   CMD_GET_POD = 'kubectl --api-version="v1beta3" get pods -l %s=%s -o yaml'
   CMD_GET_EVENTS = 'kubectl --api-version="v1beta3" get events -o yaml'
+  CMD_DELETE_PODS = 'kubectl delete pods -l %s=%s'
 
   def self.run(cmd, capture=false, term_output=true, input=nil)
 
@@ -38,6 +39,12 @@ class Kb8Run
 
   def self.create(yaml_data)
     Kb8Run.run(CMD_CREATE, true, true, yaml_data.to_s)
+  end
+
+  def self.delete_pods(selector_key, selector_value)
+    debug "Deleting pods matching selector:#{selector_key}=#{selector_value}"
+    cmd = CMD_DELETE_PODS % [selector_key, selector_value]
+    Kb8Run.run(cmd, false, true)
   end
 
   def self.get_pod_status(selector_key, selector_value)

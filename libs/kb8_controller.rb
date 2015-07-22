@@ -57,6 +57,12 @@ class Kb8Controller < Kb8Resource
     end
   end
 
+  def delete
+    super
+    # Now delete any other pods matching the selector:
+    Kb8Run.delete_pods(selector_key, selector_value)
+  end
+
   def create
 
     # Ensure the controller resource is created using the parent class...
