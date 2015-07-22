@@ -20,6 +20,7 @@ class Kb8Pod
   CONDITION_ERR_WAIT      = :error_waiting
 
   MAX_EVENT_ERROR_COUNT = 3
+  MAX_CONTAINER_RESTART_COUNT = 3
 
   attr_reader :pod_data,
               :replication_controller,
@@ -86,7 +87,7 @@ class Kb8Pod
     if @pod_data['status'].has_key?('containerStatuses')
       debug "Container status found!"
       @pod_data['status']['containerStatuses'].each do | container_status |
-        # Verify if we have any errors for this pod
+        # Verify if we have any errors for this pod e.g.
         # state:
         #     waiting:
         #       reason: 'Error: image lev_ords_waf:0.5 not found'
@@ -104,6 +105,10 @@ class Kb8Pod
               condition_value = Kb8Pod::CONDITION_ERR_WAIT
             end
           end
+        end
+        if container_status['restartCount'] >= MAX_CONTAINER_RESTART_COUNT
+          debug "Container restarting: #{container_status['name']}"
+          condition_value = Kb8Pod::CONDITION_RESTARTING
         end
       end
     else
