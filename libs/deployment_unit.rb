@@ -21,7 +21,8 @@ class Kb8DeployUnit
     actual_dir = File.expand_path(dir)
     Dir["#{actual_dir}/*.yaml"].each do | file |
       debug "Loading kb8 file:'#{file}'..."
-      kb8_data = YAML.load(File.read(file))
+      kb8_data = @context.resolve_vars_in_file(file)
+      debug "kb8 data:#{kb8_data}"
       case kb8_data['kind']
         when 'ReplicationController'
           if @controller
@@ -39,7 +40,7 @@ class Kb8DeployUnit
       end
     end
     unless @controller
-      puts "Invalid deployment unit (Missing controller) in dir:#{dir}"
+      puts "Invalid deployment unit (Missing controller) in dir:#{dir}/*.yaml"
       exit 1
     end
   end

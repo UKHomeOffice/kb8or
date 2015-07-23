@@ -22,7 +22,7 @@ class Kb8or
   include Methadone::Main
   include Methadone::CLILogging
 
-  version     '0.1.5'
+  version     '0.0.6'
   description 'Will create OR update a kb8 application in a re-runnable way'
 
   arg :deploy_file

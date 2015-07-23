@@ -12,6 +12,7 @@ class Settings
                 :defaults,
                 :default_env_name,
                 :defaults_set,
+                :env_file_glob_path,
                 :no_automatic_upgrade,
                 :path,
                 :private_registry,
@@ -28,7 +29,7 @@ class Settings
       downcase
   end
 
-  def initialize(deploy_home)
+  def initialize(deploy_home, clone=false)
     defaults_file = File.join(deploy_home, FILE_DEFAULTS)
     if File.exist?(defaults_file)
       debug "Loading settings"
@@ -53,7 +54,6 @@ class Settings
     data.each_pair do | key, value |
       unless key == 'defaults' || key == 'defaults_set'
         actual_key = underscore(key)
-        debug "Data to set context includes:#{actual_key}"
         if self.respond_to? "#{actual_key}="
           debug "Setting #{actual_key}= (from #{key} in yaml) to #{value}"
           self.__send__("#{actual_key}=", value)

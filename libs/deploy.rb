@@ -32,7 +32,11 @@ class Deploy
     end
 
     # Create a context object for informing each deployment...
-    @context = Context.new(settings, container_version_finder, deploy_home, always_deploy, env_name)
+    @context = Context.new(settings,
+                           container_version_finder,
+                           deploy_home,
+                           always_deploy,
+                           env_name)
 
     # Load deployment information for each 'deploy' (kb8 directory) that exists
     deploy_data['Deploys'].each do | deploy_unit |
