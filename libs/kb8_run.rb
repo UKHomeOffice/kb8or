@@ -59,7 +59,7 @@ class Kb8Run
 
   # Will get all events for a pod
   def self.get_pod_events(pod_name)
-    if !pod_name
+    unless pod_name
       raise "Error - expecting a valid string for pod_name"
     end
     kb8_out = Kb8Run.run(CMD_GET_EVENTS, true, false)
@@ -72,6 +72,7 @@ class Kb8Run
         relevant_events << event
       end
     end
-    relevant_events
+    events_by_time = relevant_events.sort_by { |v| v['FirstTimestamp'] }
+    events_by_time
   end
 end

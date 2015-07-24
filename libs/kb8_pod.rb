@@ -19,8 +19,10 @@ class Kb8Pod
   CONDITION_RESTARTING    = :restarting
   CONDITION_ERR_WAIT      = :error_waiting
 
-  MAX_EVENT_ERROR_COUNT = 3
-  MAX_CONTAINER_RESTART_COUNT = 3
+  EVENT_ERROR_PREFIX = 'failed'
+
+  FAIL_EVENT_ERROR_COUNT = 2
+  FAIL_CONTAINER_RESTART_COUNT = 3
 
   attr_reader :pod_data,
               :replication_controller,
@@ -96,17 +98,27 @@ class Kb8Pod
           # Now look up to see if any events are in error for this pod...
           # Assume the last event for this Pod is the only one in play?
           # TODO: add a refresh model to this...
-          last_event = Kb8Run.get_pod_events(name).last
+          all_events = Kb8Run.get_pod_events(name)
+          last_event = all_events.last
           debug "Last event data:#{last_event.to_json}"
-          if last_event && last_event['reason'] == 'failed'
+          if last_event && last_event['reason'].to_s.start_with?(EVENT_ERROR_PREFIX)
             debug "Event reason:#{last_event['reason']}, count:#{last_event['count']}"
-            if last_event['count'] >= MAX_EVENT_ERROR_COUNT
-              @error_message = last_event['message']
+            if last_event['count'] > FAIL_EVENT_ERROR_COUNT
+              # Concatignate all error messages for this POD:
+              all_events.each do | event |
+                if @error_message
+                  @error_message << "\n"
+                else
+                  @error_message = ''
+                end
+                error_message << event['message'] if event['reason'].start_with?(EVENT_ERROR_PREFIX)
+              end
+              @error_message = error_message
               condition_value = Kb8Pod::CONDITION_ERR_WAIT
             end
           end
         end
-        if container_status['restartCount'] >= MAX_CONTAINER_RESTART_COUNT
+        if container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
           debug "Container restarting: #{container_status['name']}"
           condition_value = Kb8Pod::CONDITION_RESTARTING
         end
