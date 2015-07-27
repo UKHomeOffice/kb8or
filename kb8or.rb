@@ -16,13 +16,16 @@
 
 require 'methadone'
 require 'yaml'
-Dir.glob(File.join(File.dirname(__FILE__), 'libs/*.rb')) { |f| require f }
+require 'pathname'
+
+KB8_HOME = File.dirname(Pathname.new(__FILE__).realdirpath)
+Dir.glob(File.join(KB8_HOME, 'libs/*.rb')) { |f| require f }
 
 class Kb8or
   include Methadone::Main
   include Methadone::CLILogging
 
-  version     '0.0.6'
+  version     File.read(File.join(KB8_HOME, 'version'))
   description 'Will create OR update a kb8 application in a re-runnable way'
 
   arg :deploy_file

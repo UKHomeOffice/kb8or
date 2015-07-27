@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Example runner - how this could work within Jenkins...
+
+set -e
+
+# TODO: make this more generic!
+if [ "$USER" == "JENKINS"]; then
+    export SUDO="sudo "
+fi
+
+# Get the relative checked out code directory in Jenkins:
+REAL_ROOT=/var/lib
+JENKINS_ROOT=/var
+REAL_CODE_HOME=${PWD/$JENKINS_ROOT/$REAL_ROOT}
+VER=$(cat version)
+
+# Now run kb8or...
+$SUDO docker run -it --rm --name kb8or -v "${REAL_CODE_HOME}":/var/lib/deploys ukhomeofficedigital/kb8or:${VER} && \
+  kb8or $@
