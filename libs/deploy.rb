@@ -1,4 +1,5 @@
 require 'methadone'
+require_relative 'kb8_run'
 
 class Deploy
 
@@ -46,6 +47,9 @@ class Deploy
 
   # Method to carry out the deployments
   def deploy
+    # Ensure that the config is updated...
+    @context.environment
+    Kb8Run.update_environment(@context.env_name, @context.settings.kb8_server)
     @deploy_units.each do | deploy_unit |
       deploy_unit.deploy
     end

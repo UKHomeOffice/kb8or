@@ -2,17 +2,6 @@
 
 # Tool to allow easy deployments on kb8
 # by automating kubectl and managing versions
-# TODO:
-#       4. Post deploy do pod discovery / status...
-#
-#       5. Update controller to allow for rolling updates
-#          a.) Find the controller (using it's name)
-#              Discover is it's running (from the pods)
-#          b.) Find the selector
-#          c.) Run kubectl get pods with selector
-#
-#       6. Resolve jsonPath variables out of templates
-#       7. Tail container logs during deployments...
 
 require 'methadone'
 require 'yaml'

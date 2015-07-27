@@ -4,12 +4,12 @@ require_relative 'replace_obj_vars'
 
 class Context
 
-  attr_accessor :always_deploy,
-                :container_version_finder,
-                :deployment_home,
-                :env_name,
-                :settings,
-                :vars
+  attr_reader :always_deploy,
+              :container_version_finder,
+              :deployment_home,
+              :env_name,
+              :settings,
+              :vars
 
   include Methadone::Main
   include Methadone::CLILogging
@@ -48,6 +48,9 @@ class Context
         break
       end
     end
+    # Now finaly, update the settings now we know the environment!
+    @settings = @settings.new(@vars) if @vars
+
     debug "vars=#{vars}"
     @vars
   end

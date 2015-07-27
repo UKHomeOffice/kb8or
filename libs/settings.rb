@@ -13,6 +13,7 @@ class Settings
                 :default_env_name,
                 :defaults_set,
                 :env_file_glob_path,
+                :kb8_server,
                 :no_automatic_upgrade,
                 :path,
                 :private_registry,

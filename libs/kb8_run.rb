@@ -10,6 +10,11 @@ class Kb8Run
   CMD_GET_POD = 'kubectl --api-version="v1beta3" get pods -l %s=%s -o yaml'
   CMD_GET_EVENTS = 'kubectl --api-version="v1beta3" get events -o yaml'
   CMD_DELETE_PODS = 'kubectl delete pods -l %s=%s'
+  # kubectl config set-context default-context --cluster=sbx --server=http://10.250.1.203:8080
+  # kubectl config use-context default-context
+  CMD_CONFIG_CLUSTER = 'kubectl config set-cluster %s --server=%s'
+  CMD_CONFIG_CONTEXT = 'kubectl config set-context default-context --cluster=%s'
+  CMD_CONFIG_DEFAULT = 'kubectl config use-context default-context'
 
   def self.run(cmd, capture=false, term_output=true, input=nil)
 
@@ -35,6 +40,15 @@ class Kb8Run
       end
     end
     output
+  end
+
+  def self.update_environment(env_name, server)
+    # Add the config commands (read from the environments)
+    cmd = CMD_CONFIG_CLUSTER % [env_name, server]
+    Kb8Run.run(cmd, false, true)
+    cmd = CMD_CONFIG_CONTEXT % env_name
+    Kb8Run.run(cmd, false, true)
+    Kb8Run.run(CMD_CONFIG_DEFAULT, false, true)
   end
 
   def self.create(yaml_data)

@@ -41,3 +41,17 @@ Deploys:
   - path: ../containers/cimgt/cimgt_proxy/kb8
     UsePrivateRegistry: true
 ```
+
+## TODO:
+4. Post deploy do pod discovery / status...
+5. Update controller to allow for rolling updates.
+
+   1. Find the controller (using it's name).
+      Discover is it's running (from the pods).
+      
+   2. Find the selector
+  
+   3. Run kubectl get pods with selector
+  
+6. Resolve jsonPath variables out of templates
+7. Tail container logs during deployments...
