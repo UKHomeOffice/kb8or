@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+# TODO: make this generic and add as a 'bundle' command to Jenkins
+if [ "$USER" == "JENKINS"]; then
+    export SUDO="sudo "
+fi
+
+# Get the relative checked out code directory in Jenkins:
+REAL_ROOT=/var/lib
+JENKINS_ROOT=/var
+REAL_CODE_HOME=${PWD/$JENKINS_ROOT/$REAL_ROOT}
+
+# Download and make executable the kubectl and fleetctl binaries within the Dockerfile:
+
+# Add the kubectl config commands to deploy:
+
+# Now run Ruby...
+$SUDO docker run -it --rm --name kb8or -v "${REAL_CODE_HOME}":/usr/src/myapp -w /usr/src/myapp ruby:2.1 bundle your-daemon-or-script.rb
