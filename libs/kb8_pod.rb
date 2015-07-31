@@ -69,9 +69,9 @@ class Kb8Pod
     # Find the 'Ready' condition...
     ready = false
     if @pod_data
-      debug "condition:#{@pod_data['status']['Condition']}"
-      if @pod_data['status']['Condition']
-        @pod_data['status']['Condition'].each do |condition|
+      debug "condition:#{@pod_data['status']['conditions']}"
+      if @pod_data['status']['conditions']
+        @pod_data['status']['conditions'].each do |condition|
           debug "condition:#{condition}"
           if condition['type'] == 'Ready'
             ready = condition['status'] == 'True'
