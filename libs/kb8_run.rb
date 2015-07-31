@@ -5,13 +5,13 @@ class Kb8Run
   include Methadone::Main
   include Methadone::CLILogging
 
-  CMD_ROLLING_UPDATE = 'kubectl --api-version="v1beta3" rolling-update %s-v%s -f -'
+  #API_VERSION = 'v1beta3'
+  API_VERSION = 'v1'
+  CMD_ROLLING_UPDATE = "kubectl --api-version=\"#{API_VERSION}\" rolling-update %s-v%s -f -"
   CMD_CREATE = 'kubectl create -f -'
-  CMD_GET_POD = 'kubectl --api-version="v1beta3" get pods -l %s=%s -o yaml'
-  CMD_GET_EVENTS = 'kubectl --api-version="v1beta3" get events -o yaml'
+  CMD_GET_POD = "kubectl --api-version=\"#{API_VERSION}\" get pods -l %s=%s -o yaml"
+  CMD_GET_EVENTS = "kubectl --api-version=\"#{API_VERSION}\" get events -o yaml"
   CMD_DELETE_PODS = 'kubectl delete pods -l %s=%s'
-  # kubectl config set-context default-context --cluster=sbx --server=http://10.250.1.203:8080
-  # kubectl config use-context default-context
   CMD_CONFIG_CLUSTER = 'kubectl config set-cluster %s --server=%s'
   CMD_CONFIG_CONTEXT = 'kubectl config set-context default-context --cluster=%s'
   CMD_CONFIG_DEFAULT = 'kubectl config use-context default-context'
@@ -28,7 +28,9 @@ class Kb8Run
     output = ''
     # Run process and capture output if required...
     debug "Running:'#{cmd}', '#{mode}'"
+    pid = nil
     IO.popen(cmd, mode) do |subprocess|
+      pid = subprocess.pid
       if input
         debug "#{input}"
         subprocess.write(input)
@@ -39,7 +41,10 @@ class Kb8Run
         output << "#{line}\n"  if capture
       end
     end
-    output
+    if capture
+      return output
+    end
+    pid
   end
 
   def self.update_environment(env_name, server)

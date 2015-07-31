@@ -24,7 +24,12 @@ class Kb8or
       puts "Please supply a valid file name! (#{deploy_file})"
       exit 1
     end
-    deploy = Deploy.new(deploy_file, options[:always_deploy], options[:env_name], options[:variables])
+
+    deploy = Deploy.new(deploy_file,
+                        options[:always_deploy],
+                        options[:env_name],
+                        options[:tunnel],
+                        options[:variables])
     deploy.deploy
   end
 
@@ -50,6 +55,12 @@ class Kb8or
     end
 
     options[:variables] = variable_hash
+  end
+
+  opts.on('-t',
+          '--tunnel TUNNEL',
+          'An ssh server to tunnel through') do |tunnel|
+    options[:tunnel] = tunnel
   end
 
   use_log_level_option

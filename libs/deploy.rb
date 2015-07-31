@@ -1,17 +1,24 @@
 require 'methadone'
 require_relative 'kb8_run'
+require 'uri'
 
 class Deploy
 
   attr_accessor :deploy_units,
-                :context
+                :context,
+                :tunnel
 
   YAML_DEPLOY_PATH = 'path'
+  SSH_SOCKET = 'kb8or-ctrl-socket'
 
   include Methadone::Main
   include Methadone::CLILogging
 
-  def initialize(deploy_file, always_deploy=false, env_name=nil, overridden_params=nil)
+  def initialize(deploy_file,
+                 always_deploy=false,
+                 env_name=nil,
+                 tunnel=nil,
+                 overridden_params=nil)
 
     @deploy_units = []
     deploy_home = File.dirname(deploy_file)
@@ -19,6 +26,8 @@ class Deploy
     # Load the deployment file as YAML...
     debug "Loading file:#{deploy_file}..."
     deploy_data = YAML.load(File.read(deploy_file))
+
+    @tunnel == tunnel
 
     # Load default settings
     settings = Settings.new(deploy_home)
@@ -49,10 +58,21 @@ class Deploy
   # Method to carry out the deployments
   def deploy
     # Ensure that the config is updated...
-    @context.environment
-    Kb8Run.update_environment(@context.env_name, @context.settings.kb8_server)
-    @deploy_units.each do | deploy_unit |
-      deploy_unit.deploy
+    begin
+      @context.environment
+      uri = URI(@context.settings.kb8_server)
+      if @tunnel
+        Process.spawn("ssh -M -S #{SSH_SOCKET} -fnNT ${USER}@#{@tunnel} -L 8080:#{@tunnel}:#{uri.port}")
+        @context.settings.kb8_server = "#{uri.scheme}://localhost:#{port}"
+      end
+      Kb8Run.update_environment(@context.env_name + '_tunnel', @context.settings.kb8_server)
+      @deploy_units.each do | deploy_unit |
+        deploy_unit.deploy
+      end
+    ensure
+      if @tunnel
+        `ssh -S #{SSH_SOCKET} -O exit ${USER}@#{@tunnel}`
+      end
     end
   end
 end
