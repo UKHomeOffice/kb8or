@@ -9,7 +9,8 @@ class Context
               :deployment_home,
               :env_name,
               :settings,
-              :vars
+              :vars,
+              :overridden_vars
 
   include Methadone::Main
   include Methadone::CLILogging
@@ -19,7 +20,8 @@ class Context
                  deployment_home,
                  always_deploy=false,
                  env_name=nil,
-                 vars=nil)
+                 vars=nil,
+                 overridden_vars={})
 
     debug "Creating initial context..."
     @container_version_finder = container_version_finder
@@ -28,6 +30,7 @@ class Context
     @always_deploy = always_deploy
     @env_name = env_name || settings.default_env_name
     @vars = vars
+    @overridden_vars = overridden_vars
   end
 
   def environment
@@ -45,6 +48,7 @@ class Context
       if env_name == @env_name
         debug "env=#{env_name}"
         @vars = Context.resolve_env_file(file_name)
+        @vars = @vars.merge(@overridden_vars)
         break
       end
     end
@@ -79,7 +83,8 @@ class Context
                           @deployment_home,
                           @always_deploy,
                           @env_name,
-                          @vars)
+                          @vars,
+                          @overridden_vars)
     context
   end
 end

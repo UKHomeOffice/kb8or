@@ -11,7 +11,7 @@ class Deploy
   include Methadone::Main
   include Methadone::CLILogging
 
-  def initialize(deploy_file, always_deploy=false, env_name=nil)
+  def initialize(deploy_file, always_deploy=false, env_name=nil, overridden_params=nil)
 
     @deploy_units = []
     deploy_home = File.dirname(deploy_file)
@@ -37,7 +37,8 @@ class Deploy
                            container_version_finder,
                            deploy_home,
                            always_deploy,
-                           env_name)
+                           env_name,
+                           overridden_params)
 
     # Load deployment information for each 'deploy' (kb8 directory) that exists
     deploy_data['Deploys'].each do | deploy_unit |

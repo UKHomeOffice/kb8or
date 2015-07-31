@@ -14,7 +14,8 @@ class Kb8DeployUnit
     debug "Loading new context"
     @context = context.new(data)
     debug "Got new context"
-    dir = File.join(@context.deployment_home, @context.settings.path)
+    path = @context.resolve_vars([@context.settings.path])
+    dir = File.join(@context.deployment_home, path.pop)
     @resources = {}
 
     # Load all kb8 files...
