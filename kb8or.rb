@@ -21,10 +21,10 @@ class Kb8or
 
   main do |deploy_file|
     unless File.exist?(deploy_file)
-      puts "Please supply a valid file name!"
+      puts "Please supply a valid file name! (#{deploy_file})"
       exit 1
     end
-    deploy = Deploy.new(deploy_file, options[:always_deploy], options[:env_name])
+    deploy = Deploy.new(deploy_file, options[:always_deploy], options[:env_name], options[:variables])
     deploy.deploy
   end
 
@@ -34,6 +34,22 @@ class Kb8or
 
   opts.on("-e","--env","Specify the environment") do |env_name|
     options[:env_name] = env_name
+  end
+
+  opts.on("-s", "--set-variables VARIABLES", "A comma seperated list of variable=value") do |variables|
+    unless /^.+=[^,]+(,.+=[^,]+)*/ =~ variables
+      raise "Variables does not match format like ALPHA=a,BETA=b"
+    end
+
+    variable_hash = {}
+
+    variables.split(',').each do |variable|
+      split_variable = variable.split('=', 2)
+
+      variable_hash[split_variable[0]] = split_variable[1]
+    end
+
+    options[:variables] = variable_hash
   end
 
   use_log_level_option
