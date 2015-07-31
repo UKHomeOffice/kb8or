@@ -33,9 +33,9 @@ class ReplaceObjVars
             return context.vars[key] if context.vars.has_key?(key)
           when /#{find_regexp}/
             # Multiple strings found so replace all matching
-            /#{find_regexp}/.match(obj).each do | match |
+            /#{find_regexp}/.match(obj) do | match |
               key = match.captures.to_s.strip
-              if context.has_key?(key)
+              if context.vars.has_key?(key)
                 debug "obj update (multimatch) - #{context.vars[key]}"
                 obj = obj.gsub("(#{REGEXP_VAR % key})", context.vars[key])
               end
