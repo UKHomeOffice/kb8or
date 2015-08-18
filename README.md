@@ -21,6 +21,9 @@ Will deploy kubernetes from files intelligently...
    `bundle install`
 
 ## Usage
+
+### As a container:
+`docker run -it --rm --name kb8or -v ${PWD}:/var/lib/deploy quay.io/UKHomeOffice/kb8or --help`
 ### Help
 `./kb8or.rb --help`
 
@@ -32,7 +35,28 @@ Deploy to "default" environment (usually vagrant):
 Deploy to specific environment:
 `./kb8or.rb mydeploy.yaml --env pre-production`
 
+A deployment will do the following:
+
+1. Any defaults.yaml will be loaded (from the same directory)
+2. Any environment file will then be parsed (based on EnvFileGlobPath set in defaults)
+3. Each deploy will be loaded and setting will be updated
+4. kubectl will be run to setup the Kb8Server settings (typically set per environment)
+4. Any .yaml files in the path specfified will be parsed and environment settings replaced. 
+
+### Requires a defaults.yaml file
+
+Typically at least the DefaultEnvName and EnvFileGlobPath will be set. Any settings are supported e.g.:
+
+```yaml
+---
+DefaultEnvName: vagrant
+EnvFileGlobPath: ../environments/config/*/kb8or.yaml
+ContainerVersionGlobPath: ../artefacts/*_container_version
+PrivateRegistry: 10.100.1.71:30000
+```
+
 ### Sample deployment file
+
 ```yaml
 ---
 
@@ -115,18 +139,6 @@ spec:
             path: /var/run/docker.sock
         - ${jenkins_home_volume}
       nodeSelector: ${ jenkins_node_selector }
-```
-
-### Requires a defaults.yaml file
-
-Typically at least the DefaultEnvName and EnvFileGlobPath will be set. By any settings are supported e.g.:
-
-```yaml
----
-DefaultEnvName: vagrant
-EnvFileGlobPath: ../environments/config/*/kb8or.yaml
-ContainerVersionGlobPath: ../artefacts/*_container_version
-PrivateRegistry: 10.100.1.71:30000
 ```
 
 ## TODO
