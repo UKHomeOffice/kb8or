@@ -33,6 +33,6 @@ RUN mkdir -p /var/lib/deploy
 WORKDIR /var/lib/deploy
 VOLUME /var/lib/deploy
 
-ENTRYPOINT["/usr/local/bin/kb8or"]
+ENTRYPOINT ["/usr/local/bin/kb8or"]
 
 CMD ["bash"]
