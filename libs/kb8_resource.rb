@@ -58,8 +58,7 @@ class Kb8Resource
 
 
   def delete
-    kb8_cmd = "kubectl delete -f \"#{@file}\""
-    `#{kb8_cmd}`
+    Kb8Run.delete_resource(@kind, @name)
   end
 
   def re_create

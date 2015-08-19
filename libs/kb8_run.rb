@@ -5,10 +5,10 @@ class Kb8Run
   include Methadone::Main
   include Methadone::CLILogging
 
-  #API_VERSION = 'v1beta3'
   API_VERSION = 'v1'
   CMD_ROLLING_UPDATE = "kubectl --api-version=\"#{API_VERSION}\" rolling-update %s-v%s -f -"
   CMD_CREATE = 'kubectl create -f -'
+  CMD_DELETE = 'kubectl delete %s/%s'
   CMD_GET_POD = "kubectl --api-version=\"#{API_VERSION}\" get pods -l %s=%s -o yaml"
   CMD_GET_EVENTS = "kubectl --api-version=\"#{API_VERSION}\" get events -o yaml"
   CMD_DELETE_PODS = 'kubectl delete pods -l %s=%s'
@@ -67,6 +67,12 @@ class Kb8Run
   def self.delete_pods(selector_key, selector_value)
     debug "Deleting pods matching selector:#{selector_key}=#{selector_value}"
     cmd = CMD_DELETE_PODS % [selector_key, selector_value]
+    Kb8Run.run(cmd, false, true)
+  end
+
+  def self.delete_resource(type, name)
+    debug "Deleteing resource:#{type}/#{name}"
+    cmd = CMD_DELETE % [type, name]
     Kb8Run.run(cmd, false, true)
   end
 
