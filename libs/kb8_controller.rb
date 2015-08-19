@@ -118,7 +118,7 @@ class Kb8Controller < Kb8Resource
     end
     unless failed_pods.count < 1
       # TODO: add some diagnostics e.g. logs and which failed...
-      puts "Some failed pods..."
+      puts "Error, failing pods..."
       exit 1
     end
   end
