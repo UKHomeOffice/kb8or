@@ -40,6 +40,10 @@ class Kb8Run
         puts line if term_output
         output << "#{line}\n"  if capture
       end
+      subprocess.close
+      unless $?.success?
+        raise "Error running #{cmd}:\n#{output}"
+      end
     end
     if capture
       return output
