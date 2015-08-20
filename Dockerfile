@@ -33,6 +33,4 @@ RUN mkdir -p /var/lib/deploy
 WORKDIR /var/lib/deploy
 VOLUME /var/lib/deploy
 
-ENTRYPOINT ["/usr/local/bin/kb8or"]
-
-CMD ["bash"]
+ENTRYPOINT ["/var/lib/kb8or/kb8or.rb"]

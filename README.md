@@ -11,20 +11,32 @@ Will deploy kubernetes from files intelligently...
 
 ## Pre-requisites
 1. Requires a kubernetes cluster
-2. Requires Ruby
-3. Requires the "kubectl" client
+2. Either:
+
+  2. Localy
+     
+     2. Requires Ruby
+
+     3. The "kubectl" client
+     
+     4. ssh client (For tunnel option)
+  
+  3. Docker
 
 ## Install
 
 1. Can be simply run as a container (no install)
 2. Or locally:
+   
+   Requires Ruby and the "kubectl" client
    `bundle install`
-
+   
+   
 ## Usage
 
 ### As a container:
-`docker run -it --rm --name kb8or -v ${PWD}:/var/lib/deploy quay.io/UKHomeOffice/kb8or --help`
-### Help
+`docker run -it --rm -v ${PWD}:/var/lib/deploy quay.io/ukhomeofficedigital/kb8or --help`
+### Locally:
 `./kb8or.rb --help`
 
 ### Deploy an 'environment':

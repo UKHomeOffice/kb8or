@@ -21,7 +21,7 @@ class Kb8Pod
 
   EVENT_ERROR_PREFIX = 'failed'
 
-  FAIL_EVENT_ERROR_COUNT = 1
+  FAIL_EVENT_ERROR_COUNT = 3
   FAIL_CONTAINER_RESTART_COUNT = 3
 
   attr_reader :pod_data,
@@ -103,7 +103,8 @@ class Kb8Pod
           debug "Last event data:#{last_event.to_json}"
           if last_event && last_event['reason'].to_s.start_with?(EVENT_ERROR_PREFIX)
             debug "Event reason:#{last_event['reason']}, count:#{last_event['count']}"
-            if last_event['count'] >= FAIL_EVENT_ERROR_COUNT
+            if last_event['count'] >= FAIL_EVENT_ERROR_COUNT ||
+                container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
               # Concatignate all error messages for this POD:
               all_events.each do | event |
                 if @error_message
