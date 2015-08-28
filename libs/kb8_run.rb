@@ -13,7 +13,7 @@ class Kb8Run
   CMD_GET_EVENTS = "kubectl --api-version=\"#{API_VERSION}\" get events -o yaml"
   CMD_DELETE_PODS = 'kubectl delete pods -l %s=%s'
   CMD_CONFIG_CLUSTER = 'kubectl config set-cluster %s --server=%s'
-  CMD_CONFIG_CONTEXT = 'kubectl config set-context default-context --cluster=%s'
+  CMD_CONFIG_CONTEXT = 'kubectl config set-context default-context --cluster=%s --namespace=%s'
   CMD_CONFIG_DEFAULT = 'kubectl config use-context default-context'
 
   def self.run(cmd, capture=false, term_output=true, input=nil)
@@ -55,7 +55,8 @@ class Kb8Run
     # Add the config commands (read from the environments)
     cmd = CMD_CONFIG_CLUSTER % [env_name, server]
     Kb8Run.run(cmd, false, true)
-    cmd = CMD_CONFIG_CONTEXT % env_name
+    # Ensure a namespace compatible name...
+    cmd = CMD_CONFIG_CONTEXT % [env_name, env_name]
     Kb8Run.run(cmd, false, true)
     Kb8Run.run(CMD_CONFIG_DEFAULT, false, true)
   end
@@ -71,7 +72,7 @@ class Kb8Run
   end
 
   def self.delete_resource(type, name)
-    debug "Deleteing resource:#{type}/#{name}"
+    debug "Deleting resource:#{type}/#{name}"
     cmd = CMD_DELETE % [type, name]
     Kb8Run.run(cmd, false, true)
   end

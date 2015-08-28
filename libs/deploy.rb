@@ -9,7 +9,7 @@ class Deploy
                 :tunnel
 
   YAML_DEPLOY_PATH = 'path'
-  SSH_SOCKET = 'kb8or-ctrl-socket'
+  SSH_SOCKET = '/tmp/kb8or-ctrl-socket'
 
   include Methadone::Main
   include Methadone::CLILogging
@@ -18,6 +18,7 @@ class Deploy
                  always_deploy=false,
                  env_name=nil,
                  tunnel=nil,
+                 tunnel_options=nil,
                  overridden_params=nil)
 
     @deploy_units = []
@@ -27,7 +28,8 @@ class Deploy
     debug "Loading file:#{deploy_file}..."
     deploy_data = YAML.load(File.read(deploy_file))
 
-    @tunnel == tunnel
+    @tunnel = tunnel
+    @tunnel_options = tunnel_options
 
     # Load default settings
     settings = Settings.new(deploy_home)
@@ -49,6 +51,7 @@ class Deploy
                            env_name,
                            overridden_params)
 
+    @context.environment
     # Load deployment information for each 'deploy' (kb8 directory) that exists
     deploy_data['Deploys'].each do | deploy_unit |
       @deploy_units << Kb8DeployUnit.new(deploy_unit, @context)
@@ -59,19 +62,25 @@ class Deploy
   def deploy
     # Ensure that the config is updated...
     begin
-      @context.environment
       uri = URI(@context.settings.kb8_server)
       if @tunnel
-        Process.spawn("ssh -M -S #{SSH_SOCKET} -fnNT ${USER}@#{@tunnel} -L 8080:#{@tunnel}:#{uri.port}")
-        @context.settings.kb8_server = "#{uri.scheme}://localhost:#{port}"
+        ssh_cmd = "ssh #{@tunnel_options} -M -S #{SSH_SOCKET} -fnNT #{@tunnel} " +
+                  " -L #{uri.port}:#{uri.host}:#{uri.port}"
+
+        debug "Running:\n#{ssh_cmd}"
+        Process.spawn(ssh_cmd)
+        @context.settings.kb8_server = "#{uri.scheme}://localhost:#{uri.port}"
+        # TODO: poll for readyness...
+        puts "Waiting for SSH tunnel..."
+        sleep 5
       end
-      Kb8Run.update_environment(@context.env_name + '_tunnel', @context.settings.kb8_server)
+      Kb8Run.update_environment(@context.env_name + '-tunnel', @context.settings.kb8_server)
       @deploy_units.each do | deploy_unit |
         deploy_unit.deploy
       end
     ensure
       if @tunnel
-        `ssh -S #{SSH_SOCKET} -O exit ${USER}@#{@tunnel}`
+        `ssh -S #{SSH_SOCKET} -O exit #{@tunnel}`
       end
     end
   end

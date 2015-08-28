@@ -69,7 +69,12 @@ class Context
   end
 
   def self.resolve_env_file(file_path)
-    data = YAML.load(File.read(file_path))
+    begin
+      data = YAML.load(File.read(file_path))
+    rescue Exception => e
+      # do some logging
+      raise $!, "Error parsing YAML file: #{file_path}: #{$!}", $!.backtrace
+    end
 
     # Resolve any vars within the env file:
     vars_resolver = ReplaceObjVars.new(data)

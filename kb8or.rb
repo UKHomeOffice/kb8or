@@ -29,6 +29,7 @@ class Kb8or
                         options[:always_deploy],
                         options[:env_name],
                         options[:tunnel],
+                        options[:tunnel_options],
                         options[:variables])
     deploy.deploy
   end
@@ -37,11 +38,11 @@ class Kb8or
     options[:always_deploy] = true
   end
 
-  opts.on("-e","--env","Specify the environment") do |env_name|
+  opts.on("-e ENVIRONMENT","--environment","Specify the environment") do |env_name|
     options[:env_name] = env_name
   end
 
-  opts.on("-s", "--set-variables VARIABLES", "A comma seperated list of variable=value") do |variables|
+  opts.on("-s VARIABLES", "--set-variables", "A comma seperated list of variable=value") do |variables|
     unless /^.+=[^,]+(,.+=[^,]+)*/ =~ variables
       raise "Variables does not match format like ALPHA=a,BETA=b"
     end
@@ -57,10 +58,16 @@ class Kb8or
     options[:variables] = variable_hash
   end
 
-  opts.on('-t',
-          '--tunnel TUNNEL',
+  opts.on('-t TUNNEL',
+          '--tunnel',
           'An ssh server to tunnel through') do |tunnel|
     options[:tunnel] = tunnel
+  end
+
+  opts.on('-o SSH_OPTIONS',
+          '--tunnel-options',
+          'Any ssh options e.g. "-i ~/.ssh/id_project_key" (NB Quotes)') do |tunnel_opts|
+    options[:tunnel_options] = tunnel_opts
   end
 
   use_log_level_option
