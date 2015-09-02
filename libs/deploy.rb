@@ -1,5 +1,6 @@
 require 'methadone'
 require_relative 'kb8_run'
+require_relative 'tunnel'
 require 'uri'
 
 class Deploy
@@ -17,8 +18,6 @@ class Deploy
   def initialize(deploy_file,
                  always_deploy=false,
                  env_name=nil,
-                 tunnel=nil,
-                 tunnel_options=nil,
                  overridden_params=nil)
 
     @deploy_units = []
@@ -27,9 +26,6 @@ class Deploy
     # Load the deployment file as YAML...
     debug "Loading file:#{deploy_file}..."
     deploy_data = YAML.load(File.read(deploy_file))
-
-    @tunnel = tunnel
-    @tunnel_options = tunnel_options
 
     # Load default settings
     settings = Settings.new(deploy_home)
@@ -60,28 +56,8 @@ class Deploy
 
   # Method to carry out the deployments
   def deploy
-    # Ensure that the config is updated...
-    begin
-      uri = URI(@context.settings.kb8_server)
-      if @tunnel
-        ssh_cmd = "ssh #{@tunnel_options} -M -S #{SSH_SOCKET} -fnNT #{@tunnel} " +
-                  " -L #{uri.port}:#{uri.host}:#{uri.port}"
-
-        debug "Running:\n#{ssh_cmd}"
-        Process.spawn(ssh_cmd)
-        @context.settings.kb8_server = "#{uri.scheme}://localhost:#{uri.port}"
-        # TODO: poll for readyness...
-        puts "Waiting for SSH tunnel..."
-        sleep 5
-      end
-      Kb8Run.update_environment(@context.env_name + '-tunnel', @context.settings.kb8_server)
-      @deploy_units.each do | deploy_unit |
-        deploy_unit.deploy
-      end
-    ensure
-      if @tunnel
-        `ssh -S #{SSH_SOCKET} -O exit #{@tunnel}`
-      end
+    @deploy_units.each do | deploy_unit |
+      deploy_unit.deploy
     end
   end
 end

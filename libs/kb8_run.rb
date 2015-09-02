@@ -13,8 +13,8 @@ class Kb8Run
   CMD_GET_EVENTS = "kubectl --api-version=\"#{API_VERSION}\" get events -o yaml"
   CMD_DELETE_PODS = 'kubectl delete pods -l %s=%s'
   CMD_CONFIG_CLUSTER = 'kubectl config set-cluster %s --server=%s'
-  CMD_CONFIG_CONTEXT = 'kubectl config set-context default-context --cluster=%s --namespace=%s'
-  CMD_CONFIG_DEFAULT = 'kubectl config use-context default-context'
+  CMD_CONFIG_CONTEXT = 'kubectl config set-context kb8or-context --cluster=%s --namespace=%s'
+  CMD_CONFIG_DEFAULT = 'kubectl config use-context kb8or-context'
 
   def self.run(cmd, capture=false, term_output=true, input=nil)
 

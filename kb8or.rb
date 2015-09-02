@@ -20,7 +20,7 @@ class Kb8or
   arg :deploy_file
 
   main do |deploy_file|
-    unless File.exist?(deploy_file)
+    unless options[:leave_tunnel] && File.exist?(deploy_file)
       puts "Please supply a valid file name! (#{deploy_file})"
       exit 1
     end
@@ -28,10 +28,29 @@ class Kb8or
     deploy = Deploy.new(deploy_file,
                         options[:always_deploy],
                         options[:env_name],
-                        options[:tunnel],
-                        options[:tunnel_options],
                         options[:variables])
-    deploy.deploy
+
+    begin
+      if options[:tunnel]
+        tunnel = Tunnel.new(options[:tunnel],
+                            options[:tunnel_options],
+                            deploy.context)
+        tunnel.create unless options[:close_tunnel]
+      end
+      if options[:noop]
+        puts "Noop, Deployment files parse OK."
+      else
+        deploy.deploy unless options[:close_tunnel]
+      end
+    ensure
+      if options[:close_tunnel] && options[:tunnel]
+        tunnel.close
+      else
+        unless options[:leave_tunnel]
+          tunnel.close if options[:tunnel]
+        end
+      end
+    end
   end
 
   opts.on("-a","--always-deploy","Ignore NoAutomaticUpgrade deployment setting") do
@@ -68,6 +87,18 @@ class Kb8or
           '--tunnel-options',
           'Any ssh options e.g. "-i ~/.ssh/id_project_key" (NB Quotes)') do |tunnel_opts|
     options[:tunnel_options] = tunnel_opts
+  end
+
+  opts.on('-l', '--leave-tunnel', 'Leave tunnel') do
+    options[:leave_tunnel] = true
+  end
+
+  opts.on('-n', '--noop', 'Just load deploy files (or create a tunnel)') do
+    options[:noop] = true
+  end
+
+  opts.on('-c', '--close-tunnel', 'Close any tunnel opened previously') do
+    options[:close_tunnel] = true
   end
 
   use_log_level_option
