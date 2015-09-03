@@ -20,7 +20,7 @@ class Kb8or
   arg :deploy_file
 
   main do |deploy_file|
-    unless options[:leave_tunnel] && File.exist?(deploy_file)
+    unless File.exist?(deploy_file)
       puts "Please supply a valid file name! (#{deploy_file})"
       exit 1
     end

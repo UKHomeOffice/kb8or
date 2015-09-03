@@ -65,7 +65,7 @@ class Context
   end
 
   def resolve_vars(data)
-    ReplaceObjVars.new(environment).replace(data)
+    ReplaceObjVars.new(environment, @deployment_home).replace(data)
   end
 
   def self.resolve_env_file(file_path)
@@ -75,9 +75,8 @@ class Context
       # do some logging
       raise $!, "Error parsing YAML file: #{file_path}: #{$!}", $!.backtrace
     end
-
     # Resolve any vars within the env file:
-    vars_resolver = ReplaceObjVars.new(data)
+    vars_resolver = ReplaceObjVars.new(data, File.dirname(file_path))
     vars_resolver.replace(data)
   end
 

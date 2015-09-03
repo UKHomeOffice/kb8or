@@ -36,7 +36,6 @@ class Tunnel
       puts "Waiting for SSH tunnel..."
       sleep 5
     end
-    Kb8Run.update_environment(@context.env_name, @context.settings.kb8_server)
   end
 
   def close()

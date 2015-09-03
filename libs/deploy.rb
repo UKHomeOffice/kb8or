@@ -56,6 +56,7 @@ class Deploy
 
   # Method to carry out the deployments
   def deploy
+    Kb8Run.update_environment(@context.env_name, @context.settings.kb8_server)
     @deploy_units.each do | deploy_unit |
       deploy_unit.deploy
     end
