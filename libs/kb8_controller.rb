@@ -119,7 +119,6 @@ class Kb8Controller < Kb8Resource
     unless failed_pods.count < 1
       # TODO: add some diagnostics e.g. logs and which failed...
       puts "Error, failing pods..."
-      exit 1
       failed_pods.each do | pod |
         logs = Kb8Run.get_pod_logs(pod.name)
         puts "=============================="
@@ -128,6 +127,7 @@ class Kb8Controller < Kb8Resource
         puts "=============================="
         puts "Failing pod logs above for pod:#{pod.name}"
       end
+      exit 1
     end
   end
 
