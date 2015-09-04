@@ -7,6 +7,7 @@ class Tunnel
   attr_accessor :tunnel
 
   SSH_SOCKET = '/tmp/kb8or-ctrl-socket'
+  CLIENT_PORT = 8080
 
   include Methadone::Main
   include Methadone::CLILogging
@@ -23,7 +24,7 @@ class Tunnel
     uri = URI(@context.settings.kb8_server)
     if @tunnel
       ssh_cmd = "ssh #{@tunnel_options} -M -S #{SSH_SOCKET} -fnNT #{@tunnel} " +
-          " -L #{uri.port}:#{uri.host}:#{uri.port}"
+          " -L #{CLIENT_PORT}:#{uri.host}:#{uri.port}"
 
       if @leave_tunnel
         puts "Running:\n#{ssh_cmd}"
@@ -31,7 +32,7 @@ class Tunnel
         debug "Running:\n#{ssh_cmd}"
       end
       Process.spawn(ssh_cmd)
-      @context.settings.kb8_server = "#{uri.scheme}://localhost:#{uri.port}"
+      @context.settings.kb8_server = "#{uri.scheme}://localhost:#{CLIENT_PORT}"
       # TODO: poll for readyness...
       puts "Waiting for SSH tunnel..."
       sleep 5

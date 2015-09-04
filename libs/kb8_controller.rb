@@ -101,7 +101,7 @@ class Kb8Controller < Kb8Resource
     failed_pods = []
     condition = Kb8Pod::CONDITION_NOT_READY
     @pods.each do | pod |
-      print "Waiting for #{pod.name}"
+      print "Waiting for '#{pod.name}'"
       $stdout.flush
       loop do
         sleep 1
@@ -120,6 +120,14 @@ class Kb8Controller < Kb8Resource
       # TODO: add some diagnostics e.g. logs and which failed...
       puts "Error, failing pods..."
       exit 1
+      failed_pods.each do | pod |
+        logs = Kb8Run.get_pod_logs(pod.name)
+        puts "=============================="
+        puts "Failing pod logs below for pod:#{pod.name}"
+        puts logs
+        puts "=============================="
+        puts "Failing pod logs above for pod:#{pod.name}"
+      end
     end
   end
 

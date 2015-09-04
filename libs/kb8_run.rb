@@ -9,6 +9,7 @@ class Kb8Run
   CMD_ROLLING_UPDATE = "kubectl --api-version=\"#{API_VERSION}\" rolling-update %s-v%s -f -"
   CMD_CREATE = 'kubectl create -f -'
   CMD_DELETE = 'kubectl delete %s/%s'
+  CMD_GET_POD_LOGS = 'kubectl logs %s'
   CMD_GET_POD = "kubectl --api-version=\"#{API_VERSION}\" get pods -l %s=%s -o yaml"
   CMD_GET_EVENTS = "kubectl --api-version=\"#{API_VERSION}\" get events -o yaml"
   CMD_DELETE_PODS = 'kubectl delete pods -l %s=%s'
@@ -85,6 +86,16 @@ class Kb8Run
     yaml = YAML.load(kb8_out)
     debug "YAML loaded..."
     yaml
+  end
+
+  def self.get_pod_logs(pod_name)
+    unless pod_name
+      raise "Error - expecting a valid string for pod_name"
+    end
+    debug "Getting logs from kubectl:\n#{pod_name}"
+    cmd = CMD_GET_POD_LOGS % pod_name
+    kb8_out = Kb8Run.run(cmd)
+    kb8_out
   end
 
   # Will get all events for a pod
