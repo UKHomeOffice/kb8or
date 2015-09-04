@@ -25,7 +25,11 @@ class ReplaceObjVars
   end
 
   def self.load_file(file_name, root)
-    path = File.join(root, file_name)
+    if file_name.start_with?('/')
+      path = file_name
+    else
+      path = File.join(root, file_name)
+    end
     file_data = YAML.load(File.open(path))
     file_data
   end
