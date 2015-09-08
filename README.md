@@ -2,8 +2,6 @@
 Continuous Deployment Tool for deploying with kubernetes
 
 ## Features
-Will deploy kubernetes from files intelligently...
-
 1. Will monitor for health of containers (not just fire and forget)
 2. Supports private registry override (will support differing environments)
 3. Container version manipulation (from version files - e.g. version artefacts files)
@@ -31,7 +29,6 @@ Will deploy kubernetes from files intelligently...
    Requires Ruby and the "kubectl" client
    `bundle install`
    
-   
 ## Usage
 
 ### As a container:
@@ -58,3 +55,30 @@ A deployment will do the following:
 ### Examples:
 
 See [example/Example.md](example/Example.md)
+
+## Contributing
+
+Feel free to submit pull requests and issues. If it's a particualy large PR, you may wish to discuss it in an issue first.
+
+## Versioning
+
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags).
+
+To create a new version:
+
+1. update the [version](version) file.
+2. Push a tag of the same version name to build Docker image at https://quay.io/repository/ukhomeofficedigital/kb8or
+
+## Authors
+
+* **Lewis Marshall** - *Initial work* - [Lewis Marshall](https://github.com/lewismarshall)
+
+See also the list of [contributors](https://github.com/UKHomeOffice/kb8or/contributors) who participated in this project.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+
+## Acknowledgments
+
+* TBD
