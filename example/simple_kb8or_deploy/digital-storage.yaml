@@ -1,0 +1,6 @@
+---
+
+UsePrivateRegistry: false
+
+Deploys:
+  - path: ./kube
