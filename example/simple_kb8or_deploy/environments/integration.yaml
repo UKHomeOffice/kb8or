@@ -1,0 +1,6 @@
+---
+Kb8Server: https://kube-dev-my-project.notprod.homeoffice.gov.uk
+
+env: integration
+my_var: my-project-integration
+node_port: 30011
