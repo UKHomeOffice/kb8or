@@ -151,8 +151,11 @@ class Kb8Pod < Kb8Resource
           # Probably a bad Pod:
           if container_status.has_key?('state')
             if container_status['state'].has_key?('terminated')
-              update_error("Container terminated:#{container_status['name']}")
-              condition_value = Kb8Pod::PHASE_FAILED
+              exit_code = container_status['state']['terminated']['exitCode']
+              if exit_code != 0
+                update_error("Container terminated:'#{container_status['name']}' with exit code:#{exit_code}")
+                condition_value = Kb8Pod::PHASE_FAILED
+              end
             end
           end
         end
