@@ -2,8 +2,6 @@
 Continuous Deployment Tool for deploying with kubernetes
 
 ## Features
-Will deploy kubernetes from files intelligently...
-
 1. Will monitor for health of containers (not just fire and forget)
 2. Supports private registry override (will support differing environments)
 3. Container version manipulation (from version files - e.g. version artefacts files)
@@ -31,7 +29,6 @@ Will deploy kubernetes from files intelligently...
    Requires Ruby and the "kubectl" client
    `bundle install`
    
-   
 ## Usage
 
 ### As a container:
@@ -55,112 +52,33 @@ A deployment will do the following:
 4. kubectl will be run to setup the Kb8Server settings (typically set per environment)
 4. Any .yaml files in the path specfified will be parsed and environment settings replaced. 
 
-### Requires a defaults.yaml file
+### Examples:
 
-Typically at least the DefaultEnvName and EnvFileGlobPath will be set. Any settings are supported e.g.:
+See [example/Example.md](example/Example.md)
 
-```yaml
----
-DefaultEnvName: vagrant
-EnvFileGlobPath: ../environments/config/*/kb8or.yaml
-ContainerVersionGlobPath: ../artefacts/*_container_version
-PrivateRegistry: 10.100.1.71:30000
-```
+## Contributing
 
-### Sample deployment file
+Feel free to submit pull requests and issues. If it's a particualy large PR, you may wish to discuss it in an issue first.
 
-```yaml
----
+## Versioning
 
-ContainerVersionGlobPath: ../artefacts/*_container_version
-PrivateRegistry: 10.250.1.203:5000
-UsePrivateRegistry: false
-NoAutomaticUpgrade: true
+We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags).
 
-Deploys:
-  - path: ../containers/cimgt/docker_registry/kb8
-    NoAutomaticUpgrade: true
-  - path: ../containers/cimgt/jenkins/kb8
-    NoAutomaticUpgrade: true
-  - path: ../containers/cimgt/cimgt_proxy/kb8
-    UsePrivateRegistry: true
-```
-### Sample environment file
+To create a new version:
 
-```yaml
----
-Kb8Server: http://10.250.1.203:8080
-PrivateRegistry: 10.250.1.203:30000
+1. update the [version](version) file.
+2. Push a tag of the same version name to build Docker image at https://quay.io/repository/ukhomeofficedigital/kb8or
 
-ceph_monitors:
-  - 10.250.1.203:6789
-  - 10.250.1.204:6789
-  - 10.250.1.205:6789
+## Authors
 
-jenkins_home_volume:
-  name: jenkins-home
-  hostPath:
-    path: /var/lib/jenkins_home
+* **Lewis Marshall** - *Initial work* - [Lewis Marshall](https://github.com/lewismarshall)
 
-jenkins_node_selector:
-  id: "1"
+See also the list of [contributors](https://github.com/UKHomeOffice/kb8or/contributors) who participated in this project.
 
-```
+## License
 
-### Sample replacement kubernetes yaml file
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
 
-Here the following replacements will be made:
+## Acknowledgments
 
-1. image name will be set to PrivateRegistry value (unless UsePrivateRegistry: false)
-2. image version will be set to value in file: ../artefacts/jenkins_dind_container_version (see ContainerVersionGlobPath above)
-3. The ${jenkins_home_volume} will be set to the compound value dependant on environment (e.g. use a ceph volume with the ceph_monitors set for ci_mgt not vagrant).
-
-```yaml
----
-apiVersion: v1
-kind: ReplicationController
-metadata:
-  name: jenkins
-  labels:
-    name: jenkins
-spec:
-  replicas: 1
-  selector:
-    name: jenkins
-  template:
-    metadata:
-      labels:
-        name: jenkins
-    spec:
-      containers:
-      - name: jenkins
-        image: set.by.kb8or/jenkins_dind:v3
-        args:
-          - /usr/share/jenkins/ref/bash_jenkins.sh
-        volumeMounts:
-          - name: jenkins-home
-            mountPath: /var/jenkins_home
-          - name: docker-socket
-            mountPath: /var/run/docker.sock
-        ports:
-          - name: jenkins
-            containerPort: 8080
-      volumes:
-        - name: docker-socket
-          hostPath:
-            path: /var/run/docker.sock
-        - ${jenkins_home_volume}
-      nodeSelector: ${ jenkins_node_selector }
-```
-
-## TODO
-5. Update controller to allow for rolling updates.
-
-   1. Find the controller (using it's name).
-      Discover is it's running (from the pods).
-      
-   2. Find the selector
-  
-   3. Run kubectl get pods with selector
-  
-7. Tail container logs during deployments...
+* TBD

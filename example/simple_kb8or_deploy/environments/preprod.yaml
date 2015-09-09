@@ -1,0 +1,6 @@
+---
+Kb8Server: https://kube-preprod-my-project.notprod.homeoffice.gov.uk
+
+env: preprod
+my_var: my-project-preprod
+node_port: 30001

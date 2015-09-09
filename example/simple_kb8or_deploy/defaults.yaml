@@ -1,0 +1,5 @@
+---
+
+ContainerVersionGlobPath: ./versions/*_container_version
+DefaultEnvName: dev
+EnvFileGlobPath: ./environments/*.yaml
