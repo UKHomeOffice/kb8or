@@ -3,7 +3,7 @@ require 'yaml'
 
 class Kb8Resource
 
-  attr_accessor :data,
+  attr_accessor :live_data,
                 :name,
                 :kind,
                 :kinds,
@@ -16,8 +16,7 @@ class Kb8Resource
   @@resource_cache = {}
 
   def self.get_deployed_resources(kinds)
-    kb8_out = `kubectl get #{kinds} -o yaml`
-    @@resource_cache[@kinds] = YAML.load(kb8_out)
+    @@resource_cache[@kinds] = Kb8Run.get_resource_data(kinds)
   end
 
   def initialize(kb8_resource_data, file)
@@ -26,6 +25,12 @@ class Kb8Resource
     @kind = kb8_resource_data['kind'].to_s
     @kinds = @kind + 's'
     @yaml_data = kb8_resource_data
+  end
+
+  def data(refresh=false)
+    if exist?(refresh)
+      @live_data
+    end
   end
 
   def exist?(refresh=false)
@@ -43,6 +48,7 @@ class Kb8Resource
     # Check if the item exists
     resources_of_kind['items'].each do |item|
       if item['metadata']['name'] == @name
+        @live_data = item
         return true
         break
       end

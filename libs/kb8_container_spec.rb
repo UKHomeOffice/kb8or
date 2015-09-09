@@ -82,6 +82,17 @@ class Kb8ContainerSpec
     true
   end
 
+  def update(context)
+    if context.container_version_finder
+      # Overwrite the version and registry used:
+      version = context.container_version_finder.get_version(@image_name, @version)
+      set_version(version)
+      # Set private registry (if defined)...
+      debug "Private registry:#{context.settings.use_private_registry}"
+      set_registry(context.settings.private_registry) if context.settings.use_private_registry
+    end
+  end
+
   def to_yaml
     # Update any data and return the data
     image

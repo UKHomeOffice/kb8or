@@ -3,7 +3,7 @@ require 'json'
 require_relative 'kb8_controller'
 require_relative 'kb8_run'
 
-class Kb8Pod
+class Kb8Pod < Kb8Resource
 
   include Methadone::Main
   include Methadone::CLILogging
@@ -25,13 +25,25 @@ class Kb8Pod
   FAIL_CONTAINER_RESTART_COUNT = 3
 
   attr_reader :pod_data,
-              :replication_controller,
+              :controller,
+              :container_specs,
               :error_message
 
-  def initialize(pod_data, rc)
+  def initialize(pod_data, rc=nil, file=nil, context=nil)
     debug "setting pod_data=#{pod_data}"
     @pod_data = pod_data
     @controller = rc
+    @container_specs = []
+    if context
+      pod_data['spec']['containers'].each do |item|
+        container = Kb8ContainerSpec.new(item)
+        container.update(context)
+        @container_specs << container
+      end
+    end
+
+    # Initialize the base kb8 resource
+    super(pod_data, file)
   end
 
   def name
@@ -39,11 +51,18 @@ class Kb8Pod
   end
 
   def refresh(refresh=true)
-    @controller.refresh_status(refresh)
+    all_pod_data = []
+    if @controller
+      debug "Controller is set..."
+      @controller.refresh_status(refresh)
 
-    all_pod_data = @controller.pod_status_data
+      all_pod_data = @controller.pod_status_data['items']
+    else
+      debug "Single Pod..."
+      all_pod_data << data(refresh)
+    end
 
-    all_pod_data['items'].each do | possible_pod |
+    all_pod_data.each do | possible_pod |
       debug "name:#{name}"
       debug "Poss pod name:#{possible_pod['metadata']['name']}"
       if possible_pod['metadata']['name'] == name
@@ -55,6 +74,15 @@ class Kb8Pod
   def phase(refresh=false)
     refresh(refresh)
     @pod_data['status']['phase']
+  end
+
+  def update_error(message)
+    if @error_message
+      @error_message << "\n"
+    else
+      @error_message = ''
+    end
+    @error_message << message
   end
 
   def condition(refresh=true)
@@ -107,14 +135,9 @@ class Kb8Pod
                 container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
               # Concatignate all error messages for this POD:
               all_events.each do | event |
-                if @error_message
-                  @error_message << "\n"
-                else
-                  @error_message = ''
-                end
                 error_message << event['message'] if event['reason'].start_with?(EVENT_ERROR_PREFIX)
               end
-              @error_message = error_message
+              update_error(error_message)
               condition_value = Kb8Pod::CONDITION_ERR_WAIT
             end
           end
@@ -123,10 +146,49 @@ class Kb8Pod
           debug "Container restarting: #{container_status['name']}"
           condition_value = Kb8Pod::CONDITION_RESTARTING
         end
+        # Can do something more generic - if no controller but for now:
+        if @pod_data['spec']['restartPolicy'] == 'Never'
+          # Probably a bad Pod:
+          if container_status.has_key?('state')
+            if container_status['state'].has_key?('terminated')
+              update_error("Container terminated:#{container_status['name']}")
+              condition_value = Kb8Pod::PHASE_FAILED
+            end
+          end
+        end
       end
     else
       debug "No status found here..."
     end
     condition_value
+  end
+
+  def create
+    # Ensure the Pod resource is created using the parent class...
+    super
+
+    # TODO: rewrite as health method / object...
+    print "Waiting for '#{@name}'"
+    $stdout.flush
+    debug ""
+    loop do
+      sleep 1
+      condition = condition(true)
+      Deploy.print_progress
+      break if condition != Kb8Pod::CONDITION_NOT_READY
+    end
+    if condition == Kb8Pod::CONDITION_READY
+      debug "All good for #{@name}"
+    else
+      # TODO: add some diagnostics e.g. logs and which failed...
+      puts "Error, failing pods..."
+      puts ''
+      puts "Failing pod logs below for pod:#{@name}"
+      puts '=============================='
+      Kb8Run.get_pod_logs(@name)
+      puts '=============================='
+      puts "Failing pod logs above for pod:#{@name}"
+      exit 1
+    end
   end
 end

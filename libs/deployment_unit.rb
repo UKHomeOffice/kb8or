@@ -33,49 +33,59 @@ class Kb8DeployUnit
             @controller  = Kb8Controller.new(kb8_data, file, @context)
           end
         else
-          kb8_resource = Kb8Resource.new(kb8_data, file)
+          if kb8_data['kind'] == 'Pod'
+            kb8_resource = Kb8Pod.new(kb8_data, nil, file, @context)
+          else
+            kb8_resource = Kb8Resource.new(kb8_data, file)
+          end
           unless @resources[kb8_resource.kind]
             @resources[kb8_resource.kind] = []
           end
           @resources[kb8_resource.kind] << kb8_resource
       end
     end
+    debug "NoControllerOk:#{@context.settings.no_controller_ok}"
     unless @controller
-      puts "Invalid deployment unit (Missing controller) in dir:#{dir}/*.yaml"
-      exit 1
+      unless @context.settings.no_controller_ok
+        puts "Invalid deployment unit (Missing controller) in dir:#{dir}/*.yaml"
+        exit 1
+      end
+    end
+  end
+
+  def create_or_recreate(resource)
+    if resource.exist?
+      puts "Recreating #{resource.kinds}/#{resource.name}..."
+      resource.re_create
+      puts "...done."
+    else
+      puts "Creating #{resource.kinds}/#{resource.name}..."
+      resource.create
+      puts "...done."
     end
   end
 
   def deploy
     # TODO: Will check if all the objects exist in the cluster or not...
+    deploy_items = []
     @resources.each do |key, resource_category|
+      next if key == 'Pod'
       resource_category.each do |resource|
-        if resource.exist?
-          puts "Recreating #{resource.kinds}/#{resource.name}..."
-          resource.re_create
-          puts "...done."
-        else
-          puts "Creating #{resource.kinds}/#{resource.name}..."
-          resource.create
-          puts "...done."
-        end
+        deploy_items << resource
       end
     end
-
-    if @controller.exist?
-      # Skip upgrades if deployment healthy...
+    if @resources.has_key?('Pod')
+      deploy_items == deploy_items.concat(@resources['Pod'])
+    end
+    if @controller
       if @context.settings.no_automatic_upgrade && (!context.always_deploy)
         puts "No automatic upgrade specified for #{@controller.kinds}/#{@controller.name} skipping..."
       else
-        puts "#{@controller.kinds}/#{@controller.name} will need to have a rolling updated..."
-        puts "...for now, re_creating..."
-        controller.re_create
-        puts "...done."
+        deploy_items << @controller
       end
-    else
-      puts "Creating #{@controller.kinds}/#{@controller.name}..."
-      @controller.create
-      puts "...done."
+    end
+    deploy_items.each do | item |
+      create_or_recreate(item)
     end
   end
 end

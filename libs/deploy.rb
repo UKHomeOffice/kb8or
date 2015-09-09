@@ -66,4 +66,13 @@ class Deploy
       deploy_unit.deploy
     end
   end
+
+  def self.print_progress
+    if STDOUT.isatty
+      print '.'
+    else
+      puts '.'
+    end
+    $stdout.flush
+  end
 end

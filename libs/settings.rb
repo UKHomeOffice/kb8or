@@ -15,6 +15,7 @@ class Settings
                 :env_file_glob_path,
                 :kb8_server,
                 :no_automatic_upgrade,
+                :no_controller_ok,
                 :path,
                 :private_registry,
                 :use_private_registry

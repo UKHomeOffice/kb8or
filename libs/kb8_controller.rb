@@ -36,14 +36,7 @@ class Kb8Controller < Kb8Resource
     # Now get the containers and set versions and private registry where applicable
     yaml_data['spec']['template']['spec']['containers'].each do |item|
       container = Kb8ContainerSpec.new(item)
-      if context.container_version_finder
-        # Overwrite the version and registry used:
-        version = context.container_version_finder.get_version(container.image_name, container.version)
-        container.set_version(version)
-        # Set private registry (if defined)...
-        debug "Private registry:#{context.settings.use_private_registry}"
-        container.set_registry(context.settings.private_registry) if context.settings.use_private_registry
-      end
+      container.update(context)
       @container_specs << container
     end
   end
@@ -81,8 +74,7 @@ class Kb8Controller < Kb8Resource
 
       phase_status = aggregate_phase(true)
       debug "Aggregate pod status:#{phase_status}"
-      print '.'
-      $stdout.flush
+      Deploy.print_progress
       break if phase_status != Kb8Pod::PHASE_PENDING &&
                phase_status != Kb8Pod::PHASE_UNKNOWN
     end
@@ -106,8 +98,7 @@ class Kb8Controller < Kb8Resource
       loop do
         sleep 1
         condition = pod.condition(true)
-        print '.'
-        $stdout.flush
+        Deploy.print_progress
         break if condition != Kb8Pod::CONDITION_NOT_READY
       end
       if condition == Kb8Pod::CONDITION_READY

@@ -12,6 +12,7 @@ class Kb8Run
   CMD_GET_POD_LOGS = 'kubectl logs %s'
   CMD_GET_POD = "kubectl --api-version=\"#{API_VERSION}\" get pods -l %s=%s -o yaml"
   CMD_GET_EVENTS = "kubectl --api-version=\"#{API_VERSION}\" get events -o yaml"
+  CMD_GET_RESOURCE = "kubectl --api-version=\"#{API_VERSION}\" get %s -o yaml"
   CMD_DELETE_PODS = 'kubectl delete pods -l %s=%s'
   CMD_CONFIG_CLUSTER = 'kubectl config set-cluster %s --server=%s'
   CMD_CONFIG_CONTEXT = 'kubectl config set-context kb8or-context --cluster=%s --namespace=%s'
@@ -76,6 +77,14 @@ class Kb8Run
     debug "Deleting resource:#{type}/#{name}"
     cmd = CMD_DELETE % [type, name]
     Kb8Run.run(cmd, false, true)
+  end
+
+  def self.get_resource_data(type)
+    debug "Getting resource data:#{type}"
+    cmd = CMD_GET_RESOURCE % type
+    kb8_out = Kb8Run.run(cmd, true, false)
+    yaml = YAML.load(kb8_out)
+    yaml
   end
 
   def self.get_pod_status(selector_key, selector_value)
