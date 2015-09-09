@@ -47,7 +47,12 @@ class Deploy
                            env_name,
                            overridden_params)
 
-    @context.environment
+    # This call is crucial as it populates the environment the first time
+    # NB The environment can be set as a default setting...
+    unless @context.environment
+      puts "No environment set, either specify environment option (-e) or a default environment in Defaults.yaml."
+      exit 1
+    end
     # Load deployment information for each 'deploy' (kb8 directory) that exists
     deploy_data['Deploys'].each do | deploy_unit |
       @deploy_units << Kb8DeployUnit.new(deploy_unit, @context)
