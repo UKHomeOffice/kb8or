@@ -56,7 +56,7 @@ class ReplaceObjVars
 
                 if context.vars.has_key?(key)
                   debug "obj update (multimatch) - #{context.vars[key]}"
-                  obj = obj.gsub(/(#{REGEXP_VAR})/, context.vars[key])
+                  obj = obj.gsub(/(#{REGEXP_VAR})/, context.vars[key].to_s)
                 end
               end
             end
