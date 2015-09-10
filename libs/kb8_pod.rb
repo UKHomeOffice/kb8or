@@ -90,6 +90,9 @@ class Kb8Pod < Kb8Resource
     # TODO: work out if any container is healthy or just restarting!
     condition_value = Kb8Pod::CONDITION_NOT_READY
 
+    restart_never = false
+    restart_never = @pod_data['spec']['restartPolicy'] == 'Never'
+
     refresh(refresh)
 
     debug "Pod-data:#{@pod_data.to_json}"
@@ -105,6 +108,10 @@ class Kb8Pod < Kb8Resource
             ready = condition['status'] == 'True'
           end
         end
+      end
+      if restart_never
+        # Have to manage 'phase' here for controller less pods...
+        ready = @pod_data['status']['phase'] == Kb8Pod::PHASE_SUCCEEDED
       end
     end
     debug "Ready:#{ready}"
