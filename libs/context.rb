@@ -1,5 +1,4 @@
-require 'yaml'
-require 'methadone'
+require_relative 'kb8_utils'
 require_relative 'replace_obj_vars'
 
 class Context
@@ -60,7 +59,7 @@ class Context
   end
 
   def resolve_vars_in_file(file_path)
-    data = YAML.load(File.read(file_path))
+    data = Kb8Utils::load_yaml(file_path)
     resolve_vars(data)
   end
 
@@ -69,12 +68,7 @@ class Context
   end
 
   def self.resolve_env_file(file_path)
-    begin
-      data = YAML.load(File.read(file_path))
-    rescue Exception => e
-      # do some logging
-      raise $!, "Error parsing YAML file: #{file_path}: #{$!}", $!.backtrace
-    end
+    data = Kb8Utils::load_yaml(file_path)
     # Resolve any vars within the env file:
     vars_resolver = ReplaceObjVars.new(data, File.dirname(file_path))
     vars_resolver.replace(data)

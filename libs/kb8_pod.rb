@@ -142,7 +142,7 @@ class Kb8Pod < Kb8Resource
                 container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
               # Concatignate all error messages for this POD:
               all_events.each do | event |
-                error_message << event['message'] if event['reason'].start_with?(EVENT_ERROR_PREFIX)
+                update_error(event['message']) if event['reason'].start_with?(EVENT_ERROR_PREFIX)
               end
               update_error(error_message)
               condition_value = Kb8Pod::CONDITION_ERR_WAIT

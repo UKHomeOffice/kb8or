@@ -1,6 +1,5 @@
-require 'methadone'
-require_relative 'kb8_run'
 require_relative 'tunnel'
+require_relative 'kb8_utils'
 require 'uri'
 
 class Deploy
@@ -25,7 +24,7 @@ class Deploy
 
     # Load the deployment file as YAML...
     debug "Loading file:#{deploy_file}..."
-    deploy_data = YAML.load(File.read(deploy_file))
+    deploy_data = Kb8Utils.load_yaml(deploy_file)
 
     # Load default settings
     settings = Settings.new(deploy_home)

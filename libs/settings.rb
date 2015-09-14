@@ -1,5 +1,4 @@
-require 'yaml'
-require 'methadone'
+require_relative 'kb8_utils'
 
 class Settings
 
@@ -35,7 +34,7 @@ class Settings
     defaults_file = File.join(deploy_home, FILE_DEFAULTS)
     if File.exist?(defaults_file)
       debug "Loading settings"
-      @defaults = YAML.load(File.open(defaults_file))
+      @defaults = Kb8Utils.load_yaml(File.open(defaults_file))
     end
   end
 

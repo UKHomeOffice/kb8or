@@ -1,5 +1,4 @@
-require 'methadone'
-require 'yaml'
+require_relative 'kb8_utils'
 
 class ReplaceObjVars
   # Class to replace any string references in an object with values from a hash
@@ -30,7 +29,7 @@ class ReplaceObjVars
     else
       path = File.join(root, file_name)
     end
-    file_data = YAML.load(File.open(path))
+    file_data = Kb8Utils.load_yaml(File.open(path))
     file_data
   end
 

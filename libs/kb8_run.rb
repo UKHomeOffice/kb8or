@@ -122,7 +122,7 @@ class Kb8Run
         relevant_events << event
       end
     end
-    events_by_time = relevant_events.sort_by { |v| v['FirstTimestamp'] }
+    events_by_time = relevant_events.sort { |a, b| a['lastTimestamp'] <=> b['lastTimestamp'] }
     events_by_time
   end
 end
