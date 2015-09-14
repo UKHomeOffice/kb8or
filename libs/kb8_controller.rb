@@ -25,6 +25,12 @@ class Kb8Controller < Kb8Resource
     @container_specs = []
 
     # Initialise the selectors used to find relevant pods
+    unless yaml_data['spec']
+      raise "Invalid YAML - Missing spec in file:'#{file}'."
+    end
+    unless yaml_data['spec'].has_key?('selector')
+      raise "Invalid YAML - Missing selectors in file:'#{file}'."
+    end
     yaml_data['spec']['selector'].each do |key, value|
       @selector_key = key.to_s
       @selector_value = value.to_s
@@ -34,7 +40,13 @@ class Kb8Controller < Kb8Resource
     @intended_replicas = yaml_data['spec']['replicas']
 
     # Now get the containers and set versions and private registry where applicable
-    yaml_data['spec']['template']['spec']['containers'].each do |item|
+    containers = []
+    begin
+      containers = yaml_data['spec']['template']['spec']['containers']
+    rescue Exception => e
+      raise $!, "Invalid YAML - Missing containers in controller file:'#{file}'.", $!.backtrace
+    end
+    containers.each do |item|
       container = Kb8ContainerSpec.new(item)
       container.update(context)
       @container_specs << container
