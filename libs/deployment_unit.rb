@@ -78,7 +78,7 @@ class Kb8DeployUnit
       deploy_items == deploy_items.concat(@resources['Pod'])
     end
     if @controller
-      if @context.settings.no_automatic_upgrade && (!context.always_deploy)
+      if @controller.exist? && @context.settings.no_automatic_upgrade && (!@context.always_deploy)
         puts "No automatic upgrade specified for #{@controller.kinds}/#{@controller.name} skipping..."
       else
         deploy_items << @controller
