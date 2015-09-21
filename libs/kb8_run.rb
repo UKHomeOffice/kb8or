@@ -1,4 +1,5 @@
 require 'methadone'
+require 'open3'
 
 class Kb8Run
 
@@ -55,13 +56,6 @@ class Kb8Run
 
   def self.run(cmd, capture=false, term_output=true, input=nil)
 
-    # pipe if specifying input
-    if input
-      mode = 'w+'
-    else
-      mode = 'r'
-    end
-
     errors = []
     ok = false
     until ok
@@ -69,33 +63,22 @@ class Kb8Run
       # Run process and capture output if required...
       debug "Running:'#{cmd}', '#{mode}'"
       pid = nil
-      IO.popen(cmd, mode) do |subprocess|
-        pid = subprocess.pid
-        if input
-          debug "#{input}"
-          subprocess.write(input)
-          subprocess.close_write
+      stdout_str, stderr_str, status = Open3.capture3(cmd, input)
+      pid = status.pid
+      if status.success?
+        if capture
+          return stdout_str
         end
-        subprocess.read.split("\n").each do |line|
-          puts line if term_output
-          output << "#{line}\n"  if capture
-        end
-        subprocess.close
-        if $?.success?
-          ok = true
+        ok = true
+      else
+        if cmd.start_with?(CMD_KUBECTL)
+          error = KubeCtlError.new(subprocess, stderr_str)
+          raise error if error.enough_already?(errors)
+          errors << error
         else
-          if cmd.start_with?(CMD_KUBECTL)
-            error = KubeCtlError.new(subprocess, output)
-            raise error if error.enough_already?(errors)
-            errors << error
-          else
-            raise "Error running #{cmd}, exit code '#{$?.to_i}':\n#{output}"
-          end
+          raise "Error running #{cmd}, exit code '#{status.exitstatus}':\n#{stderr_str}"
         end
       end
-    end
-    if capture
-      return output
     end
     pid
   end
