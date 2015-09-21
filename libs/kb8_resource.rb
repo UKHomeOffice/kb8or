@@ -1,5 +1,4 @@
-require 'methadone'
-require 'yaml'
+require_relative 'kb8_utils'
 
 class Kb8Resource
 
@@ -65,6 +64,10 @@ class Kb8Resource
 
   def delete
     Kb8Run.delete_resource(@kind, @name)
+  end
+
+  def update
+    KB8Run.update_resource(@kind, @name)
   end
 
   def re_create

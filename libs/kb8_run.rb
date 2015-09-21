@@ -6,17 +6,52 @@ class Kb8Run
   include Methadone::CLILogging
 
   API_VERSION = 'v1'
-  CMD_ROLLING_UPDATE = "kubectl --api-version=\"#{API_VERSION}\" rolling-update %s-v%s -f -"
-  CMD_CREATE = 'kubectl create -f -'
-  CMD_DELETE = 'kubectl delete %s/%s'
-  CMD_GET_POD_LOGS = 'kubectl logs %s'
-  CMD_GET_POD = "kubectl --api-version=\"#{API_VERSION}\" get pods -l %s=%s -o yaml"
-  CMD_GET_EVENTS = "kubectl --api-version=\"#{API_VERSION}\" get events -o yaml"
-  CMD_GET_RESOURCE = "kubectl --api-version=\"#{API_VERSION}\" get %s -o yaml"
-  CMD_DELETE_PODS = 'kubectl delete pods -l %s=%s'
-  CMD_CONFIG_CLUSTER = 'kubectl config set-cluster %s --server=%s'
-  CMD_CONFIG_CONTEXT = 'kubectl config set-context kb8or-context --cluster=%s --namespace=%s'
-  CMD_CONFIG_DEFAULT = 'kubectl config use-context kb8or-context'
+  CMD_KUBECTL = 'kubectl'
+  CMD_ROLLING_UPDATE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" rolling-update %s-v%s -f -"
+  CMD_CREATE = "#{CMD_KUBECTL} create -f -"
+  CMD_UPDATE = "#{CMD_KUBECTL} update -f -"
+  CMD_DELETE = "#{CMD_KUBECTL} delete %s/%s"
+  CMD_GET_POD_LOGS = "#{CMD_KUBECTL} logs %s"
+  CMD_GET_POD = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get pods -l %s=%s -o yaml"
+  CMD_GET_EVENTS = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get events -o yaml"
+  CMD_GET_RESOURCE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get %s -o yaml"
+  CMD_DELETE_PODS = "#{CMD_KUBECTL} delete pods -l %s=%s"
+  CMD_CONFIG_CLUSTER = "#{CMD_KUBECTL} config set-cluster %s --server=%s"
+  CMD_CONFIG_CONTEXT = "#{CMD_KUBECTL} config set-context kb8or-context --cluster=%s --namespace=%s"
+  CMD_CONFIG_DEFAULT = "#{CMD_KUBECTL} config use-context kb8or-context"
+
+  class KubeCtlError < StandardError
+
+    attr_accessor :subprocess,
+                  :output
+
+    RETRY_COUNT = 3
+    ERROR_IO_TIMEOUT = /error: couldn't read version from server.*i\/o timeout/
+    RETRY_ERRS = [ERROR_IO_TIMEOUT]
+
+    def initialize(subprocess, output)
+      @subprocess = subprocess
+      @output = output
+    end
+
+    def enough_already?(errors)
+      # First work out if the error is retryable...
+      retryable = false
+      RETRY_ERRS.each do | err_regexp |
+        if err_regexp =~ @output
+          retryable = true
+          break
+        end
+      end
+      # For non-retryable errors - we've always had enough!
+      return true unless retryable
+      error_count = 0
+      errors.each do |error|
+        error_count = error_count +1 if error.message == @output
+      end
+      (error_count >= RETRY_ERRS)
+    end
+  end
 
   def self.run(cmd, capture=false, term_output=true, input=nil)
 
@@ -27,24 +62,36 @@ class Kb8Run
       mode = 'r'
     end
 
-    output = ''
-    # Run process and capture output if required...
-    debug "Running:'#{cmd}', '#{mode}'"
-    pid = nil
-    IO.popen(cmd, mode) do |subprocess|
-      pid = subprocess.pid
-      if input
-        debug "#{input}"
-        subprocess.write(input)
-        subprocess.close_write
-      end
-      subprocess.read.split("\n").each do |line|
-        puts line if term_output
-        output << "#{line}\n"  if capture
-      end
-      subprocess.close
-      unless $?.success?
-        raise "Error running #{cmd}:\n#{output}"
+    errors = []
+    ok = false
+    until ok
+      output = ''
+      # Run process and capture output if required...
+      debug "Running:'#{cmd}', '#{mode}'"
+      pid = nil
+      IO.popen(cmd, mode) do |subprocess|
+        pid = subprocess.pid
+        if input
+          debug "#{input}"
+          subprocess.write(input)
+          subprocess.close_write
+        end
+        subprocess.read.split("\n").each do |line|
+          puts line if term_output
+          output << "#{line}\n"  if capture
+        end
+        subprocess.close
+        if $?.success?
+          ok = true
+        else
+          if cmd.start_with?(CMD_KUBECTL)
+            error = KubeCtlError.new(subprocess, output)
+            raise error if error.enough_already?(errors)
+            errors << error
+          else
+            raise "Error running #{cmd}, exit code '#{$?.to_i}':\n#{output}"
+          end
+        end
       end
     end
     if capture
@@ -65,6 +112,10 @@ class Kb8Run
 
   def self.create(yaml_data)
     Kb8Run.run(CMD_CREATE, true, true, yaml_data.to_s)
+  end
+
+  def self.update(yaml_data)
+    Kb8Run.run(CMD_UPDATE, true, true, yaml_data.to_s)
   end
 
   def self.delete_pods(selector_key, selector_value)

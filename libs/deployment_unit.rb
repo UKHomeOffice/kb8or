@@ -53,10 +53,15 @@ class Kb8DeployUnit
     end
   end
 
-  def create_or_recreate(resource)
+  def create_or_update(resource)
     if resource.exist?
-      puts "Recreating #{resource.kinds}/#{resource.name}..."
-      resource.re_create
+      puts "Attempting Update for #{resource.kinds}/#{resource.name}..."
+      resource.update
+
+      # May need to detect failure and do a re-create...?
+      #puts "Recreating #{resource.kinds}/#{resource.name}..."
+      #resource.re_create
+
       puts "...done."
     else
       puts "Creating #{resource.kinds}/#{resource.name}..."
@@ -85,7 +90,7 @@ class Kb8DeployUnit
       end
     end
     deploy_items.each do | item |
-      create_or_recreate(item)
+      create_or_update(item)
     end
   end
 end
