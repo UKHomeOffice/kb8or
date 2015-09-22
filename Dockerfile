@@ -1,4 +1,4 @@
-FROM ruby:2.0.0-p645-slim
+FROM ruby:2.2-slim
 MAINTAINER Lewis Marshall <lewis@technoplusit.co.uk>
 
 # Update and install all of the required packages.
@@ -6,16 +6,8 @@ RUN apt-get update && apt-get install -y \
     wget \
     tar
 
-# Download the fleetctl binary:
-RUN FLEET_URL=https://github.com/coreos/fleet/releases/download/v0.10.2/fleet-v0.10.2-linux-amd64.tar.gz && \
-    export FLEET_TAR=$(basename ${FLEET_URL}) && \
-    wget -O /tmp/${FLEET_TAR} ${FLEET_URL} && \
-    cd /tmp && \
-    tar -xzvf ${FLEET_TAR} && \
-    cp $(basename ${FLEET_TAR} .tar.gz)/fleetctl /usr/local/bin/fleetctl
-
 # Download the kubectl binary:
-ENV KUBE_VER=1.0.3
+ENV KUBE_VER=1.0.6
 ENV KUBE_URL=https://storage.googleapis.com/kubernetes-release/release/v${KUBE_VER}/bin/linux/amd64/kubectl
 RUN /bin/bash -l -c "wget ${KUBE_URL} \
                      -O /usr/local/bin/kubectl && \

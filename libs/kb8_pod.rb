@@ -20,9 +20,12 @@ class Kb8Pod < Kb8Resource
   CONDITION_ERR_WAIT      = :error_waiting
 
   EVENT_ERROR_PREFIX = 'failed'
+  EVENT_UNHEALTHY = 'unhealthy'
+  EVENT_REASONS = [EVENT_ERROR_PREFIX, EVENT_UNHEALTHY]
 
   FAIL_EVENT_ERROR_COUNT = 3
   FAIL_CONTAINER_RESTART_COUNT = 3
+  RETRY_BACKOFF_SECONDS = 10
 
   attr_reader :pod_data,
               :controller,
@@ -59,11 +62,18 @@ class Kb8Pod < Kb8Resource
       all_pod_data = @controller.pod_status_data['items']
     else
       debug "Single Pod..."
-      all_pod_data << data(refresh)
+      data = data(refresh)
+      unless data
+        data = @pod_data
+      end
+      all_pod_data << data
     end
 
     all_pod_data.each do | possible_pod |
       debug "name:#{name}"
+      if possible_pod.nil?
+        debug "how?"
+      end
       debug "Poss pod name:#{possible_pod['metadata']['name']}"
       if possible_pod['metadata']['name'] == name
         @pod_data = possible_pod
@@ -83,6 +93,15 @@ class Kb8Pod < Kb8Resource
       @error_message = ''
     end
     @error_message << message
+  end
+
+  def is_event_reason_relevant(reason)
+    EVENT_REASONS.each do |event_reason|
+      if reason.start_with?(event_reason)
+        return true
+      end
+    end
+    false
   end
 
   def condition(refresh=true)
@@ -120,7 +139,7 @@ class Kb8Pod < Kb8Resource
     end
     # Ensure things are actually good to go:
     # Will detect containers having events with reason='failed'
-    debug "Here"
+    debug "About to check container status' for pod:#{name}"
     if @pod_data['status'].has_key?('containerStatuses')
       debug "Container status found!"
       @pod_data['status']['containerStatuses'].each do | container_status |
@@ -129,29 +148,34 @@ class Kb8Pod < Kb8Resource
         #     waiting:
         #       reason: 'Error: image lev_ords_waf:0.5 not found'
         debug "Digging into container status #{container_status.to_json}"
-        if container_status['state'].has_key?('waiting')
+        # if container_status['state'].has_key?('waiting')
           # Now look up to see if any events are in error for this pod...
           # Assume the last event for this Pod is the only one in play?
           # TODO: add a refresh model to this...
           all_events = Kb8Run.get_pod_events(name)
           last_event = all_events.last
           debug "Last event data:#{last_event.to_json}"
-          if last_event && last_event['reason'].to_s.start_with?(EVENT_ERROR_PREFIX)
+          if last_event && is_event_reason_relevant(last_event['reason'].to_s)
             debug "Event reason:#{last_event['reason']}, count:#{last_event['count']}"
             if last_event['count'] >= FAIL_EVENT_ERROR_COUNT ||
                 container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
               # Concatignate all error messages for this POD:
               all_events.each do | event |
-                update_error(event['message']) if event['reason'].start_with?(EVENT_ERROR_PREFIX)
+                update_error(event['message']) if is_event_reason_relevant(event['reason'])
               end
               update_error(error_message)
               condition_value = Kb8Pod::CONDITION_ERR_WAIT
             end
           end
-        end
+        # end
         if container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
-          debug "Container restarting: #{container_status['name']}"
+          debug "Container restarting:'#{container_status['name']}'"
           condition_value = Kb8Pod::CONDITION_RESTARTING
+        end
+        if container_status['restartCount'] > 0
+          puts "...Detected restarting container:'#{container_status['name']}'. Backing off to check again in #{RETRY_BACKOFF_SECONDS}"
+          sleep RETRY_BACKOFF_SECONDS
+          condition_value = Kb8Pod::CONDITION_ERR_WAIT
         end
         # Can do something more generic - if no controller but for now:
         if @pod_data['spec']['restartPolicy'] == 'Never'
@@ -180,7 +204,7 @@ class Kb8Pod < Kb8Resource
     # TODO: rewrite as health method / object...
     print "Waiting for '#{@name}'"
     $stdout.flush
-    debug ""
+    debug ''
     loop do
       sleep 1
       condition = condition(true)

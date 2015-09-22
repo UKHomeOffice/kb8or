@@ -7,7 +7,8 @@ class Kb8Resource
                 :kind,
                 :kinds,
                 :file,
-                :yaml_data
+                :yaml_data,
+                :resources_of_kind
 
   include Methadone::Main
   include Methadone::CLILogging
@@ -27,6 +28,9 @@ class Kb8Resource
   end
 
   def data(refresh=false)
+    unless @live_data
+      refresh = true
+    end
     if exist?(refresh)
       @live_data
     end
@@ -39,13 +43,13 @@ class Kb8Resource
       refresh = true
     end
     if refresh
-      resources_of_kind = Kb8Resource.get_deployed_resources(@kinds)
+      @resources_of_kind = Kb8Resource.get_deployed_resources(@kinds)
     else
-      resources_of_kind = @@resource_cache[@kinds]
+      @resources_of_kind = @@resource_cache[@kinds]
     end
 
     # Check if the item exists
-    resources_of_kind['items'].each do |item|
+    @resources_of_kind['items'].each do |item|
       if item['metadata']['name'] == @name
         @live_data = item
         return true
@@ -61,7 +65,6 @@ class Kb8Resource
     Kb8Run.create(yaml_string)
   end
 
-
   def delete
     Kb8Run.delete_resource(@kind, @name)
   end
@@ -71,9 +74,15 @@ class Kb8Resource
     Kb8Run.replace(yaml_string)
   end
 
-  def re_create
-    delete
-    create
+  def update
+    case @kind
+      when 'Secret'
+        replace
+      else
+        # TODO: add error handling to use appropriate update type...
+        # Only safe way to know for sure...  ...for now?
+        delete
+        create
+    end
   end
-
 end

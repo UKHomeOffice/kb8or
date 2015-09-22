@@ -1,5 +1,6 @@
 require 'methadone'
 require 'open3'
+require_relative 'runner'
 
 class Kb8Run
 
@@ -8,15 +9,15 @@ class Kb8Run
 
   API_VERSION = 'v1'
   CMD_KUBECTL = 'kubectl'
-  CMD_ROLLING_UPDATE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" rolling-update %s-v%s -f -"
+  CMD_ROLLING_UPDATE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" rolling-update %s -f -"
   CMD_CREATE = "#{CMD_KUBECTL} create -f -"
   CMD_REPLACE = "#{CMD_KUBECTL} replace -f -"
   CMD_DELETE = "#{CMD_KUBECTL} delete %s/%s"
   CMD_GET_POD_LOGS = "#{CMD_KUBECTL} logs %s"
-  CMD_GET_POD = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get pods -l %s=%s -o yaml"
+  CMD_GET_POD = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get pods -l %s -o yaml"
   CMD_GET_EVENTS = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get events -o yaml"
   CMD_GET_RESOURCE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get %s -o yaml"
-  CMD_DELETE_PODS = "#{CMD_KUBECTL} delete pods -l %s=%s"
+  CMD_DELETE_PODS = "#{CMD_KUBECTL} delete pods -l %s"
   CMD_CONFIG_CLUSTER = "#{CMD_KUBECTL} config set-cluster %s --server=%s"
   CMD_CONFIG_CONTEXT = "#{CMD_KUBECTL} config set-context kb8or-context --cluster=%s --namespace=%s"
   CMD_CONFIG_DEFAULT = "#{CMD_KUBECTL} config use-context kb8or-context"
@@ -31,7 +32,8 @@ class Kb8Run
     RETRY_BACK_OFF = 3
     ERROR_IO_TIMEOUT = /error: couldn't read version from server.*i\/o timeout/
     ERROR_IO_REFUSED = /error: couldn't read version from server.*: connection refused/
-    RETRY_ERRS = [ERROR_IO_REFUSED, ERROR_IO_TIMEOUT]
+    ERROR_IO_TLS_TIMEOUT = /error: couldn't read version from server.*: TLS handshake timeout/
+    RETRY_ERRS = [ERROR_IO_REFUSED, ERROR_IO_TIMEOUT, ERROR_IO_TLS_TIMEOUT]
 
     def initialize(status, cmd, output)
       @output = output
@@ -44,7 +46,7 @@ class Kb8Run
           break
         end
       end
-      @message = "Error (exit code:'#{status.to_i}') running '#{cmd}':\n#{output}"
+      @message = "Error (exit code:'#{status.exitstatus.to_i}') running '#{cmd}':\n#{output}"
       @message = "Error (Tried #{RETRY_COUNT} times) #{@message}" if @retryable
     end
 
@@ -72,27 +74,27 @@ class Kb8Run
     ok = false
     until ok
       output = ''
+      stderr_str = ''
       # Run process and capture output if required...
       debug "Running:'#{cmd}'"
       pid = nil
       # The ; forces a shell execution...
-      stdout_str, stderr_str, status = Open3.capture3(cmd + ';', :stdin_data=>input.to_s)
-      pid = status.pid
-      if term_output
-        puts stdout_str
-      end
-      if status.success?
+      status = nil
+      # stdout_str, stderr_str, status = Open3.capture3(cmd + ';', :stdin_data=>input.to_s)
+      runner = Runner.new(cmd, term_output, input)
+      pid = runner.status
+      if runner.status.success?
         if capture
-          return stdout_str
+          return runner.stdout
         end
         ok = true
       else
         if cmd.start_with?(CMD_KUBECTL)
-          error = KubeCtlError.new(status, cmd, stderr_str)
+          error = KubeCtlError.new(runner.status, cmd, runner.stderr)
           raise error if error.enough_already?(errors)
           errors << error
         else
-          raise "Error running #{cmd}, exit code '#{status.exitstatus}':\n#{stderr_str}"
+          raise "Error running #{cmd}, exit code '#{runner.status.exitstatus}':\n#{runner.stderr}"
         end
       end
     end
@@ -117,9 +119,14 @@ class Kb8Run
     Kb8Run.run(CMD_REPLACE, true, true, yaml_data.to_s)
   end
 
-  def self.delete_pods(selector_key, selector_value)
-    debug "Deleting pods matching selector:#{selector_key}=#{selector_value}"
-    cmd = CMD_DELETE_PODS % [selector_key, selector_value]
+  def self.rolling_update(yaml_data, old_controller)
+    cmd = CMD_ROLLING_UPDATE % old_controller
+    Kb8Run.run(cmd, true, true, yaml_data.to_s)
+  end
+
+  def self.delete_pods(selector_string)
+    debug "Deleting pods matching selectors:#{selector_string}"
+    cmd = CMD_DELETE_PODS % [selector_string]
     Kb8Run.run(cmd, false, true)
   end
 
@@ -137,9 +144,9 @@ class Kb8Run
     yaml
   end
 
-  def self.get_pod_status(selector_key, selector_value)
-    debug "Get pods with selector '#{selector_key}' with value:'#{selector_value}'"
-    cmd = CMD_GET_POD % [selector_key, selector_value]
+  def self.get_pod_status(selector_string)
+    debug "Get pods with selectors: '#{selector_string}'"
+    cmd = CMD_GET_POD % [selector_string]
     kb8_out = Kb8Run.run(cmd, true, false)
     debug "Loading YAML data from kubectl:\n#{kb8_out}"
     yaml = YAML.load(kb8_out)
@@ -167,9 +174,12 @@ class Kb8Run
     relevant_events = []
     # TODO: work out filters (selectors set by rc's don't work here!!!)
     yaml['items'].each do |event|
-      event_name = event['involvedObject']['name'].to_s
+      event_name = ''
+      unless event['involvedObject'].nil?
+        event_name = event['involvedObject']['name'].to_s
+      end
       if event_name == pod_name.to_s
-        relevant_events << event
+        relevant_events << event unless event['lastTimestamp'].nil?
       end
     end
     events_by_time = relevant_events.sort { |a, b| a['lastTimestamp'] <=> b['lastTimestamp'] }

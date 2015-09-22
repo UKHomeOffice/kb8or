@@ -8,21 +8,53 @@ class Kb8Controller < Kb8Resource
   include Methadone::Main
   include Methadone::CLILogging
 
-  attr_accessor :selector_key,
-                :selector_value,
+  DEPLOYMENT_LABEL = 'kb8_deploy_id'
+  ORIGINAL_NAME = 'kb8_deploy_name'
+
+  attr_accessor :selectors,
                 :container_specs,
                 :pod_status_data,
                 :pods,
                 :intended_replicas,
-                :actual_replicas
+                :actual_replicas,
+                :new_deploy_id,
+                :original_name
+
+  class Selectors
+    attr_accessor :selectors_hash
+
+    def initialize(selectors_data)
+      @selectors_hash = selectors_data
+    end
+
+    def to_s
+      # Create a sorted key value string
+      selector_string = ''
+      @selectors_hash.keys.sort.each do | key |
+        unless selector_string == ''
+          selector_string = selector_string + ','
+        end
+        selector_string = "#{selector_string}#{key}=#{@selectors_hash[key]}"
+      end
+      selector_string
+    end
+
+    def ==(other_obj)
+      (self.to_s == other_obj.to_s)
+    end
+  end
 
   def initialize(yaml_data, file, context)
 
     # Initialize the base kb8 resource
     super(yaml_data, file)
 
+    # This holds whilst we always use the file data...
+    @original_name = @name.dup
+
     @pods = []
     @container_specs = []
+    @no_rolling_updates = context.settings.no_rolling_update
 
     # Initialise the selectors used to find relevant pods
     unless yaml_data['spec']
@@ -31,12 +63,7 @@ class Kb8Controller < Kb8Resource
     unless yaml_data['spec'].has_key?('selector')
       raise "Invalid YAML - Missing selectors in file:'#{file}'."
     end
-    yaml_data['spec']['selector'].each do |key, value|
-      @selector_key = key.to_s
-      @selector_value = value.to_s
-      break
-      #TODO: handle more than one set of selectors e.g. versions?
-    end
+    @selectors = Selectors.new(yaml_data['spec']['selector'])
     @intended_replicas = yaml_data['spec']['replicas']
 
     # Now get the containers and set versions and private registry where applicable
@@ -53,26 +80,94 @@ class Kb8Controller < Kb8Resource
     end
   end
 
+  def can_roll_update?
+    if @no_rolling_updates
+      return false
+    end
+    if exist?
+      @live_data['metadata']['labels'].has_key?(DEPLOYMENT_LABEL)
+    else
+      false
+    end
+  end
+
+  def deploy_id
+    unless @new_deploy_id
+      deploy_id = '0'
+      if @live_data['metadata']['labels'].has_key?(DEPLOYMENT_LABEL)
+        deploy_id = @live_data['metadata']['labels'][DEPLOYMENT_LABEL]
+      end
+      # Grab the first digits...
+      id = deploy_id.match(/[\d]+/).to_a.first
+      unless id
+        # We have the field but no digits so set back to 0
+        id = 0
+      end
+      @new_deploy_id = "v#{id.to_i + 1}"
+    end
+    @new_deploy_id
+  end
+
+  def update_deployment_data
+    # Add new deployment id and name etc...
+    yaml_data['metadata']['name'] = "#{@original_name}-#{deploy_id}"
+    yaml_data['metadata']['labels'][ORIGINAL_NAME] = @original_name
+    yaml_data['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
+    yaml_data['spec']['selector'][DEPLOYMENT_LABEL] = deploy_id
+    yaml_data['spec']['template']['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
+  end
+
   def refresh_status(refresh=false)
     if @pod_status_data.nil?
       refresh = true
     end
     if refresh
-      @pod_status_data = Kb8Run.get_pod_status(selector_key, selector_value)
+      @pod_status_data = Kb8Run.get_pod_status(@selectors.to_s)
     end
   end
 
-  def delete
-    super
-    # Now delete any other pods matching the selector:
-    Kb8Run.delete_pods(selector_key, selector_value)
+  def update
+    unless exist?
+      raise "Can't update #{@kind}/#{@name} as it doesn't exist yet!"
+    end
+    unless can_roll_update?
+      delete
+      create
+    else
+      yaml_string = YAML.dump(yaml_data)
+      begin
+        Kb8Run.rolling_update(yaml_string, @live_data['metadata']['name'])
+        @name = yaml_data['metadata']['name']
+      ensure
+        check_status
+      end
+    end
+  end
+
+  def exist?
+    if super
+      true
+    else
+      @resources_of_kind['items'].each do |item|
+        if item['metadata']['labels'][ORIGINAL_NAME] == @original_name
+          @live_data = item
+          @name = @live_data['metadata']['name']
+          update_deployment_data
+          return true
+          break
+        end
+      end
+      false
+    end
   end
 
   def create
-
     # Ensure the controller resource is created using the parent class...
     super
+    check_status
+  end
 
+  def check_status
     # TODO: rewrite as health method / object...
     # Now wait until the pods are all running or one...
     phase_status = Kb8Pod::PHASE_UNKNOWN
@@ -81,7 +176,7 @@ class Kb8Controller < Kb8Resource
     loop do
       # TODO: add a timeout option (or options for differing states...)
       sleep 1
-      # Tidy sdtout when debugging...
+      # Tidy stdout when debugging...
       debug "\n"
 
       phase_status = aggregate_phase(true)
