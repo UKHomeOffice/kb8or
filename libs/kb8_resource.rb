@@ -66,8 +66,9 @@ class Kb8Resource
     Kb8Run.delete_resource(@kind, @name)
   end
 
-  def update
-    KB8Run.update_resource(@kind, @name)
+  def replace
+    yaml_string = YAML.dump(yaml_data)
+    Kb8Run.replace(yaml_string)
   end
 
   def re_create

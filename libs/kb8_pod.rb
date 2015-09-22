@@ -195,7 +195,7 @@ class Kb8Pod < Kb8Resource
       puts ''
       puts "Failing pod logs below for pod:#{@name}"
       puts '=============================='
-      Kb8Run.get_pod_logs(@name)
+      puts Kb8Run.get_pod_logs(@name)
       puts '=============================='
       puts "Failing pod logs above for pod:#{@name}"
       exit 1

@@ -55,12 +55,13 @@ class Kb8DeployUnit
 
   def create_or_update(resource)
     if resource.exist?
-      puts "Attempting Update for #{resource.kinds}/#{resource.name}..."
-      resource.update
+      #puts "Attempting Replace for #{resource.kinds}/#{resource.name}..."
+      # TODO: Will need to check if changed and only update when required...
+      #resource.replace
 
       # May need to detect failure and do a re-create...?
-      #puts "Recreating #{resource.kinds}/#{resource.name}..."
-      #resource.re_create
+      puts "Recreating #{resource.kinds}/#{resource.name}..."
+      resource.re_create
 
       puts "...done."
     else

@@ -10,7 +10,7 @@ class Kb8Run
   CMD_KUBECTL = 'kubectl'
   CMD_ROLLING_UPDATE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" rolling-update %s-v%s -f -"
   CMD_CREATE = "#{CMD_KUBECTL} create -f -"
-  CMD_UPDATE = "#{CMD_KUBECTL} update -f -"
+  CMD_REPLACE = "#{CMD_KUBECTL} replace -f -"
   CMD_DELETE = "#{CMD_KUBECTL} delete %s/%s"
   CMD_GET_POD_LOGS = "#{CMD_KUBECTL} logs %s"
   CMD_GET_POD = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get pods -l %s=%s -o yaml"
@@ -23,34 +23,46 @@ class Kb8Run
 
   class KubeCtlError < StandardError
 
-    attr_accessor :subprocess,
-                  :output
+    attr_accessor :output,
+                  :message,
+                  :retryable
 
     RETRY_COUNT = 3
+    RETRY_BACK_OFF = 3
     ERROR_IO_TIMEOUT = /error: couldn't read version from server.*i\/o timeout/
-    RETRY_ERRS = [ERROR_IO_TIMEOUT]
+    ERROR_IO_REFUSED = /error: couldn't read version from server.*: connection refused/
+    RETRY_ERRS = [ERROR_IO_REFUSED, ERROR_IO_TIMEOUT]
 
-    def initialize(subprocess, output)
-      @subprocess = subprocess
+    def initialize(status, cmd, output)
       @output = output
-    end
 
-    def enough_already?(errors)
-      # First work out if the error is retryable...
-      retryable = false
+      # Work out if the error is retryable...
+      @retryable = false
       RETRY_ERRS.each do | err_regexp |
         if err_regexp =~ @output
-          retryable = true
+          @retryable = true
           break
         end
       end
+      @message = "Error (exit code:'#{status.to_i}') running '#{cmd}':\n#{output}"
+      @message = "Error (Tried #{RETRY_COUNT} times) #{@message}" if @retryable
+    end
+
+    def enough_already?(errors)
       # For non-retryable errors - we've always had enough!
       return true unless retryable
       error_count = 0
       errors.each do |error|
-        error_count = error_count +1 if error.message == @output
+        if error == self
+          error_count = error_count + 1
+          sleep RETRY_BACK_OFF
+        end
       end
-      (error_count >= RETRY_ERRS)
+      (error_count >= RETRY_COUNT)
+    end
+
+    def == (other_object)
+      (self.output == other_object.output)
     end
   end
 
@@ -61,10 +73,14 @@ class Kb8Run
     until ok
       output = ''
       # Run process and capture output if required...
-      debug "Running:'#{cmd}', '#{mode}'"
+      debug "Running:'#{cmd}'"
       pid = nil
-      stdout_str, stderr_str, status = Open3.capture3(cmd, input)
+      # The ; forces a shell execution...
+      stdout_str, stderr_str, status = Open3.capture3(cmd + ';', :stdin_data=>input.to_s)
       pid = status.pid
+      if term_output
+        puts stdout_str
+      end
       if status.success?
         if capture
           return stdout_str
@@ -72,7 +88,7 @@ class Kb8Run
         ok = true
       else
         if cmd.start_with?(CMD_KUBECTL)
-          error = KubeCtlError.new(subprocess, stderr_str)
+          error = KubeCtlError.new(status, cmd, stderr_str)
           raise error if error.enough_already?(errors)
           errors << error
         else
@@ -97,8 +113,8 @@ class Kb8Run
     Kb8Run.run(CMD_CREATE, true, true, yaml_data.to_s)
   end
 
-  def self.update(yaml_data)
-    Kb8Run.run(CMD_UPDATE, true, true, yaml_data.to_s)
+  def self.replace(yaml_data)
+    Kb8Run.run(CMD_REPLACE, true, true, yaml_data.to_s)
   end
 
   def self.delete_pods(selector_key, selector_value)
@@ -137,7 +153,7 @@ class Kb8Run
     end
     debug "Getting logs from kubectl:\n#{pod_name}"
     cmd = CMD_GET_POD_LOGS % pod_name
-    kb8_out = Kb8Run.run(cmd)
+    kb8_out = Kb8Run.run(cmd, true, false)
     kb8_out
   end
 
