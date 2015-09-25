@@ -15,8 +15,10 @@ class Settings
                 :kb8_server,
                 :no_automatic_upgrade,
                 :no_controller_ok,
+                :no_rolling_update,
                 :path,
                 :private_registry,
+                :recreate_services,
                 :use_private_registry
 
   include Methadone::Main

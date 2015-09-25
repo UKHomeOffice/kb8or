@@ -55,14 +55,15 @@ class Kb8DeployUnit
 
   def create_or_update(resource)
     if resource.exist?
-      #puts "Attempting Replace for #{resource.kinds}/#{resource.name}..."
-      # TODO: Will need to check if changed and only update when required...
-      #resource.replace
-
-      # May need to detect failure and do a re-create...?
-      puts "Recreating #{resource.kinds}/#{resource.name}..."
-      resource.re_create
-
+      puts "Updating #{resource.kinds}/#{resource.name}..."
+      update_ok = true
+      if resource.kinds == 'Services'
+        unless context.settings.recreate_services
+          update_ok = false
+          puts '...Not re-creating service, Use setting RecreateServices to override.'
+        end
+      end
+      resource.update if update_ok
       puts "...done."
     else
       puts "Creating #{resource.kinds}/#{resource.name}..."
@@ -72,7 +73,6 @@ class Kb8DeployUnit
   end
 
   def deploy
-    # TODO: Will check if all the objects exist in the cluster or not...
     deploy_items = []
     @resources.each do |key, resource_category|
       next if key == 'Pod'

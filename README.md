@@ -1,32 +1,31 @@
 # kb8or
-Continuous Deployment Tool for deploying with kubernetes
+Continuous Deployment Tool for deploying with [Kubernetes](http://kubernetes.io/).
 
 ## Features
-1. Will monitor for health of containers (not just fire and forget)
-2. Supports private registry override (will support differing environments)
-3. Container version manipulation (from version files - e.g. version artefacts files)
-4. Environment specific variables (for deployments to dev, pre-prod, production)
+1. Will deploy any Kubernetes YAML files by creating / re-creating or do rolling update as required
+2. Monitors for success (including restarts) of applications (where [kubectl client](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html) doesn't). 
+3. Reports on failures and display logs and errors for failing resources
+3. Container images AND resource version management
+4. Application environment specific variables (for deployments to dev, pre-prod, production)
 
 ## Pre-requisites
-1. Requires a kubernetes cluster
-2. Either:
+1. A running Kubernetes cluster
+2. Either locally with; [Ruby](https://www.ruby-lang.org/en/documentation/installation/) 2.x, bundler, [kubectl client](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html) client.
+3. Or with Docker (no install).
 
-  2. Localy
-     
-     2. Requires Ruby
+In order to run this in a container you'll need docker installed:
 
-     3. The "kubectl" client
-     
-     4. ssh client (For tunnel option)
-  
-  3. Docker
+* [Windows](https://docs.docker.com/windows/started)
+* [OS X](https://docs.docker.com/mac/started/)
+* [Linux](https://docs.docker.com/linux/started/)
 
-## Install
+It is currently hosted here: https://quay.io/repository/ukhomeofficedigital/kb8or
 
-1. Can be simply run as a container (no install)
-2. Or locally:
+## Local Install
+
+   Or locally:
    
-   Requires Ruby and the "kubectl" client
+   Requires Ruby and the [kubectl client](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html).
    `bundle install`
    
 ## Usage
@@ -48,8 +47,8 @@ A deployment will do the following:
 
 1. Any defaults.yaml will be loaded (from the same directory)
 2. Any environment file will then be parsed (based on EnvFileGlobPath set in defaults)
-3. Each deploy will be loaded and setting will be updated
-4. kubectl will be run to setup the Kb8Server settings (typically set per environment)
+3. Each deploy will be loaded and settings will be updated
+4. kubectl will be used to setup the Kb8or specific context settings (typically set per environment)
 4. Any .yaml files in the path specfified will be parsed and environment settings replaced. 
 
 ### Examples:
@@ -58,7 +57,10 @@ See [example/Example.md](example/Example.md)
 
 ## Contributing
 
-Feel free to submit pull requests and issues. If it's a particualy large PR, you may wish to discuss it in an issue first.
+Feel free to submit pull requests and issues. If it's a particularly large PR, you may wish to discuss it in an issue first.
+
+Please note that this project is released with a [Contributor Code of Conduct](code_of_conduct.md). 
+By participating in this project you agree to abide by its terms.
 
 ## Versioning
 
@@ -81,4 +83,4 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## Acknowledgments
 
-* TBD
+* [Kubernetes](http://kubernetes.io/)
