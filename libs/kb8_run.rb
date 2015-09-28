@@ -1,5 +1,6 @@
 require 'methadone'
 require 'open3'
+require 'json'
 require_relative 'runner'
 
 class Kb8Run
@@ -73,13 +74,10 @@ class Kb8Run
     errors = []
     ok = false
     until ok
-      output = ''
-      stderr_str = ''
       # Run process and capture output if required...
       debug "Running:'#{cmd}'"
       pid = nil
       # The ; forces a shell execution...
-      status = nil
       # stdout_str, stderr_str, status = Open3.capture3(cmd + ';', :stdin_data=>input.to_s)
       runner = Runner.new(cmd, term_output, input)
       pid = runner.status
@@ -174,12 +172,15 @@ class Kb8Run
     relevant_events = []
     # TODO: work out filters (selectors set by rc's don't work here!!!)
     yaml['items'].each do |event|
-      event_name = ''
-      unless event['involvedObject'].nil?
+      if event['involvedObject'].nil?
+        # Can't deal with this event...
+        next
+      else
         event_name = event['involvedObject']['name'].to_s
-      end
-      if event_name == pod_name.to_s
-        relevant_events << event unless event['lastTimestamp'].nil?
+        debug "Event data:#{event.to_json}"
+        if event_name == pod_name.to_s
+          relevant_events << event unless event['lastTimestamp'].nil?
+        end
       end
     end
     events_by_time = relevant_events.sort { |a, b| a['lastTimestamp'] <=> b['lastTimestamp'] }

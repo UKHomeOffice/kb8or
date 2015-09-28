@@ -38,10 +38,12 @@ class Kb8or
         tunnel.create unless options[:close_tunnel]
       end
       if options[:noop]
-        puts "Noop, Deployment files parse OK."
+        puts 'Noop, Deployment files parse OK.'
       else
         deploy.deploy unless options[:close_tunnel]
       end
+    rescue NameError => e
+      puts "#{e.message}\n#{e.backtrace.inspect}"
     ensure
       if options[:close_tunnel] && options[:tunnel]
         tunnel.close
@@ -53,17 +55,17 @@ class Kb8or
     end
   end
 
-  opts.on("-a","--always-deploy","Ignore NoAutomaticUpgrade deployment setting") do
+  opts.on('-a','--always-deploy','Ignore NoAutomaticUpgrade deployment setting') do
     options[:always_deploy] = true
   end
 
-  opts.on("-e ENVIRONMENT","--environment","Specify the environment") do |env_name|
+  opts.on('-e ENVIRONMENT','--environment','Specify the environment') do |env_name|
     options[:env_name] = env_name
   end
 
-  opts.on("-s VARIABLES", "--set-variables", "A comma seperated list of variable=value") do |variables|
+  opts.on('-s VARIABLES', '--set-variables', 'A comma separated list of variable=value') do |variables|
     unless /^.+=[^,]+(,.+=[^,]+)*/ =~ variables
-      raise "Variables does not match format like ALPHA=a,BETA=b"
+      raise 'Variables does not match format like ALPHA=a,BETA=b'
     end
 
     variable_hash = {}

@@ -20,7 +20,7 @@ class Tunnel
     @context = context
   end
 
-  def create()
+  def create
     uri = URI(@context.settings.kb8_server)
     if @tunnel
       ssh_cmd = "ssh #{@tunnel_options} -M -S #{SSH_SOCKET} -fnNT #{@tunnel} " +
@@ -34,12 +34,12 @@ class Tunnel
       Process.spawn(ssh_cmd)
       @context.settings.kb8_server = "#{uri.scheme}://localhost:#{CLIENT_PORT}"
       # TODO: poll for readyness...
-      puts "Waiting for SSH tunnel..."
+      puts 'Waiting for SSH tunnel...'
       sleep 5
     end
   end
 
-  def close()
+  def close
     # Ensure that the config is updated...
     ssh_close_cmd = "ssh -S #{SSH_SOCKET} -O exit #{@tunnel}"
     if @leave_tunnel

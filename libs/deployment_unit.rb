@@ -11,9 +11,9 @@ class Kb8DeployUnit
 
   def initialize(data, context)
 
-    debug "Loading new context"
+    debug 'Loading new context'
     @context = context.new(data)
-    debug "Got new context"
+    debug 'Got new context'
     path = @context.resolve_vars([@context.settings.path])
     dir = File.join(@context.deployment_home, path.pop)
     @resources = {}
@@ -64,11 +64,11 @@ class Kb8DeployUnit
         end
       end
       resource.update if update_ok
-      puts "...done."
+      puts '...done.'
     else
       puts "Creating #{resource.kinds}/#{resource.name}..."
       resource.create
-      puts "...done."
+      puts '...done.'
     end
   end
 

@@ -30,7 +30,8 @@ class Kb8Pod < Kb8Resource
   attr_reader :pod_data,
               :controller,
               :container_specs,
-              :error_message
+              :error_message,
+              :restart_never
 
   def initialize(pod_data, rc=nil, file=nil, context=nil)
     debug "setting pod_data=#{pod_data}"
@@ -44,6 +45,8 @@ class Kb8Pod < Kb8Resource
         @container_specs << container
       end
     end
+    @restart_never = false
+    @restart_never = @pod_data['spec']['restartPolicy'] == 'Never'
 
     # Initialize the base kb8 resource
     super(pod_data, file)
@@ -56,7 +59,7 @@ class Kb8Pod < Kb8Resource
   def refresh(refresh=true)
     all_pod_data = []
     if @controller
-      debug "Controller is set..."
+      debug 'Controller is set...'
       @controller.refresh_status(refresh)
 
       all_pod_data = @controller.pod_status_data['items']
@@ -87,12 +90,14 @@ class Kb8Pod < Kb8Resource
   end
 
   def update_error(message)
-    if @error_message
-      @error_message << "\n"
-    else
-      @error_message = ''
+    unless @error_message.to_s.include?(message)
+      if @error_message
+        @error_message << "\n"
+      else
+        @error_message = "\t"
+      end
+      @error_message << message
     end
-    @error_message << message
   end
 
   def is_event_reason_relevant(reason)
@@ -104,27 +109,21 @@ class Kb8Pod < Kb8Resource
     false
   end
 
-  def condition(refresh=true)
-
-    # TODO: work out if any container is healthy or just restarting!
-    condition_value = Kb8Pod::CONDITION_NOT_READY
-
-    restart_never = false
-    restart_never = @pod_data['spec']['restartPolicy'] == 'Never'
-
-    refresh(refresh)
-
-    debug "Pod-data:#{@pod_data.to_json}"
-
-    # Find the 'Ready' condition...
+  def is_ready?
     ready = false
     if @pod_data
+      unless @pod_data['status']
+        debug 'No status here...'
+        # Can't see anything more for now...
+        return false
+      end
+
       debug "condition:#{@pod_data['status']['conditions']}"
       if @pod_data['status']['conditions']
-        @pod_data['status']['conditions'].each do |condition|
-          debug "condition:#{condition}"
-          if condition['type'] == 'Ready'
-            ready = condition['status'] == 'True'
+        @pod_data['status']['conditions'].each do |pod_condition|
+          debug "condition:#{pod_condition}"
+          if pod_condition['type'] == 'Ready'
+            ready = pod_condition['status'] == 'True'
           end
         end
       end
@@ -133,41 +132,33 @@ class Kb8Pod < Kb8Resource
         ready = @pod_data['status']['phase'] == Kb8Pod::PHASE_SUCCEEDED
       end
     end
-    debug "Ready:#{ready}"
-    if ready
+    ready
+  end
+
+  def condition(refresh=true)
+    # TODO: work out if any container is healthy or just restarting!
+    condition_value = Kb8Pod::CONDITION_NOT_READY
+    refresh(refresh)
+    debug "Pod-data:#{@pod_data.to_json}"
+
+    # Find the 'Ready' condition...
+    if is_ready?
       condition_value = Kb8Pod::CONDITION_READY
     end
     # Ensure things are actually good to go:
     # Will detect containers having events with reason='failed'
     debug "About to check container status' for pod:#{name}"
-    if @pod_data['status'].has_key?('containerStatuses')
-      debug "Container status found!"
+    if  @pod_data && @pod_data['status'] && @pod_data['status'].has_key?('containerStatuses')
+      debug 'Container status found!'
       @pod_data['status']['containerStatuses'].each do | container_status |
         # Verify if we have any errors for this pod e.g.
         # state:
         #     waiting:
         #       reason: 'Error: image lev_ords_waf:0.5 not found'
         debug "Digging into container status #{container_status.to_json}"
-        # if container_status['state'].has_key?('waiting')
-          # Now look up to see if any events are in error for this pod...
-          # Assume the last event for this Pod is the only one in play?
-          # TODO: add a refresh model to this...
-          all_events = Kb8Run.get_pod_events(name)
-          last_event = all_events.last
-          debug "Last event data:#{last_event.to_json}"
-          if last_event && is_event_reason_relevant(last_event['reason'].to_s)
-            debug "Event reason:#{last_event['reason']}, count:#{last_event['count']}"
-            if last_event['count'] >= FAIL_EVENT_ERROR_COUNT ||
-                container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
-              # Concatignate all error messages for this POD:
-              all_events.each do | event |
-                update_error(event['message']) if is_event_reason_relevant(event['reason'])
-              end
-              update_error(error_message)
-              condition_value = Kb8Pod::CONDITION_ERR_WAIT
-            end
-          end
-        # end
+        unless container_status['state'].nil?
+          condition_value = update_from_events(condition_value, container_status)
+        end
         if container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
           debug "Container restarting:'#{container_status['name']}'"
           condition_value = Kb8Pod::CONDITION_RESTARTING
@@ -178,7 +169,7 @@ class Kb8Pod < Kb8Resource
           condition_value = Kb8Pod::CONDITION_ERR_WAIT
         end
         # Can do something more generic - if no controller but for now:
-        if @pod_data['spec']['restartPolicy'] == 'Never'
+        if @restart_never
           # Probably a bad Pod:
           if container_status.has_key?('state')
             if container_status['state'].has_key?('terminated')
@@ -192,7 +183,30 @@ class Kb8Pod < Kb8Resource
         end
       end
     else
-      debug "No status found here..."
+      debug 'No status found here...'
+    end
+    @last_condition = condition_value
+    condition_value
+  end
+
+  def update_from_events(condition_value, container_status)
+    # Now look up to see if any events are in error for this pod...
+    # Assume the last event for this Pod is the only one in play?
+    # TODO: add a refresh model to this...
+    all_events = Kb8Run.get_pod_events(@name)
+    last_event = all_events.last
+    debug "Last event data:#{last_event.to_json}"
+    if last_event && is_event_reason_relevant(last_event['reason'].to_s)
+      debug "Event reason:#{last_event['reason']}, count:#{last_event['count']}"
+      if last_event['count'] >= FAIL_EVENT_ERROR_COUNT ||
+          container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
+        # Concatenate all error messages for this POD:
+        all_events.each do | event |
+          update_error(event['message']) if is_event_reason_relevant(event['reason'])
+        end
+        update_error(error_message)
+        condition_value = Kb8Pod::CONDITION_ERR_WAIT
+      end
     end
     condition_value
   end
@@ -205,24 +219,33 @@ class Kb8Pod < Kb8Resource
     print "Waiting for '#{@name}'"
     $stdout.flush
     debug ''
+    current_condition = nil
     loop do
       sleep 1
-      condition = condition(true)
+      current_condition = condition(true)
       Deploy.print_progress
-      break if condition != Kb8Pod::CONDITION_NOT_READY
+      break if current_condition != Kb8Pod::CONDITION_NOT_READY
     end
-    if condition == Kb8Pod::CONDITION_READY
+    if current_condition == Kb8Pod::CONDITION_READY
       debug "All good for #{@name}"
     else
-      # TODO: add some diagnostics e.g. logs and which failed...
-      puts "Error, failing pods..."
-      puts ''
+      report_on_pod_failure
+      exit 1
+    end
+  end
+
+  def report_on_pod_failure
+    # TODO: add some diagnostics e.g. logs and which failed...
+    puts "Error, failing pods..."
+    puts "Error messages for pod:#{@name}"
+    puts @error_message
+    debug "Err Status:#{@last_condition.to_s}"
+    unless @last_condition == Kb8Pod::CONDITION_ERR_WAIT
       puts "Failing pod logs below for pod:#{@name}"
       puts '=============================='
       puts Kb8Run.get_pod_logs(@name)
       puts '=============================='
       puts "Failing pod logs above for pod:#{@name}"
-      exit 1
     end
   end
 end

@@ -208,6 +208,7 @@ class Kb8Controller < Kb8Resource
         Deploy.print_progress
         break if condition != Kb8Pod::CONDITION_NOT_READY
       end
+      print "\n"
       if condition == Kb8Pod::CONDITION_READY
         debug "All good for #{pod.name}"
       else
@@ -216,14 +217,9 @@ class Kb8Controller < Kb8Resource
     end
     unless failed_pods.count < 1
       # TODO: add some diagnostics e.g. logs and which failed...
-      puts "Error, failing pods..."
+      puts 'Error, failing pods...'
       failed_pods.each do | pod |
-        puts ''
-        puts "Failing pod logs below for pod:#{pod.name}"
-        puts '=============================='
-        Kb8Run.get_pod_logs(pod.name)
-        puts '=============================='
-        puts "Failing pod logs above for pod:#{pod.name}"
+        pod.report_on_pod_failure
       end
       exit 1
     end
