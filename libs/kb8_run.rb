@@ -9,6 +9,7 @@ class Kb8Run
   include Methadone::CLILogging
 
   API_VERSION = 'v1'
+  MISSING_DATA_RETRIES = 3
   CMD_KUBECTL = 'kubectl'
   CMD_ROLLING_UPDATE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" rolling-update %s -f -"
   CMD_CREATE = "#{CMD_KUBECTL} create -f -"
@@ -99,6 +100,24 @@ class Kb8Run
     pid
   end
 
+  def self.get_yaml_data(cmd)
+    retries = 0
+    yaml = nil
+    until yaml || retries >= MISSING_DATA_RETRIES
+      retries = retries + 1
+      kb8_out = Kb8Run.run(cmd, true, false)
+      debug "Loading YAML data from kubectl:\n#{kb8_out}"
+      if kb8_out
+        yaml = YAML.load(kb8_out)
+        debug 'YAML loaded...'
+      end
+    end
+    unless yaml
+      raise "Cmd:#{cmd} failed to return any data for loading into YAML after #{MISSING_DATA_RETRIES} tries!"
+    end
+    yaml
+  end
+
   def self.update_environment(env_name, server)
     # Add the config commands (read from the environments)
     cmd = CMD_CONFIG_CLUSTER % [env_name, server]
@@ -137,19 +156,16 @@ class Kb8Run
   def self.get_resource_data(type)
     debug "Getting resource data:#{type}"
     cmd = CMD_GET_RESOURCE % type
-    kb8_out = Kb8Run.run(cmd, true, false)
-    yaml = YAML.load(kb8_out)
-    yaml
+    yaml_data = Kb8Run.get_yaml_data(cmd)
+    yaml_data
   end
 
   def self.get_pod_status(selector_string)
+    # Allow a few retires here, to cope with no data:
     debug "Get pods with selectors: '#{selector_string}'"
     cmd = CMD_GET_POD % [selector_string]
-    kb8_out = Kb8Run.run(cmd, true, false)
-    debug "Loading YAML data from kubectl:\n#{kb8_out}"
-    yaml = YAML.load(kb8_out)
-    debug "YAML loaded..."
-    yaml
+    yaml_data = Kb8Run.get_yaml_data(cmd)
+    yaml_data
   end
 
   def self.get_pod_logs(pod_name)
@@ -165,10 +181,9 @@ class Kb8Run
   # Will get all events for a pod
   def self.get_pod_events(pod_name)
     unless pod_name
-      raise "Error - expecting a valid string for pod_name"
+      raise 'Error - expecting a valid string for pod_name'
     end
-    kb8_out = Kb8Run.run(CMD_GET_EVENTS, true, false)
-    yaml = YAML.load(kb8_out)
+    yaml = Kb8Run.get_yaml_data(CMD_GET_EVENTS)
     relevant_events = []
     # TODO: work out filters (selectors set by rc's don't work here!!!)
     yaml['items'].each do |event|

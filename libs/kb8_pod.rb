@@ -64,7 +64,7 @@ class Kb8Pod < Kb8Resource
 
       all_pod_data = @controller.pod_status_data['items']
     else
-      debug "Single Pod..."
+      debug 'Single Pod...'
       data = data(refresh)
       unless data
         data = @pod_data
