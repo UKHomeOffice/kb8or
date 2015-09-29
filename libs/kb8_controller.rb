@@ -146,6 +146,7 @@ class Kb8Controller < Kb8Resource
 
   def exist?
     if super
+      update_deployment_data
       true
     else
       @resources_of_kind['items'].each do |item|

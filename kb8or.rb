@@ -42,8 +42,9 @@ class Kb8or
       else
         deploy.deploy unless options[:close_tunnel]
       end
-    rescue NameError => e
-      puts "#{e.message}\n#{e.backtrace.inspect}"
+    rescue TypeError, NameError => e
+      puts "Kb8or bug:#{e.message}\n#{e.backtrace.inspect}"
+      raise
     ensure
       if options[:close_tunnel] && options[:tunnel]
         tunnel.close

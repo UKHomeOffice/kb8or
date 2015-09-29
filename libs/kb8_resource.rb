@@ -50,7 +50,7 @@ class Kb8Resource
 
     # Check if the item exists
     @resources_of_kind['items'].each do |item|
-      if item['metadata']['name'] == @name
+      if item['metadata'] && item['metadata'].has_key?('name') && item['metadata']['name'] == @name
         @live_data = item
         return true
         break

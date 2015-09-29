@@ -118,8 +118,8 @@ class Kb8Pod < Kb8Resource
         return false
       end
 
-      debug "condition:#{@pod_data['status']['conditions']}"
       if @pod_data['status']['conditions']
+        debug "condition:#{@pod_data['status']['conditions']}"
         @pod_data['status']['conditions'].each do |pod_condition|
           debug "condition:#{pod_condition}"
           if pod_condition['type'] == 'Ready'
@@ -159,14 +159,16 @@ class Kb8Pod < Kb8Resource
         unless container_status['state'].nil?
           condition_value = update_from_events(condition_value, container_status)
         end
-        if container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
-          debug "Container restarting:'#{container_status['name']}'"
-          condition_value = Kb8Pod::CONDITION_RESTARTING
-        end
-        if container_status['restartCount'] > 0
-          puts "...Detected restarting container:'#{container_status['name']}'. Backing off to check again in #{RETRY_BACKOFF_SECONDS}"
-          sleep RETRY_BACKOFF_SECONDS
-          condition_value = Kb8Pod::CONDITION_ERR_WAIT
+        if container_status['restartCount']
+          if container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
+            debug "Container restarting:'#{container_status['name']}'"
+            condition_value = Kb8Pod::CONDITION_RESTARTING
+          end
+          if container_status['restartCount'] > 0
+            puts "...Detected restarting container:'#{container_status['name']}'. Backing off to check again in #{RETRY_BACKOFF_SECONDS}"
+            sleep RETRY_BACKOFF_SECONDS
+            condition_value = Kb8Pod::CONDITION_ERR_WAIT
+          end
         end
         # Can do something more generic - if no controller but for now:
         if @restart_never
