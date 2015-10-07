@@ -1,4 +1,7 @@
 # kb8or
+
+[![Build Status](https://travis-ci.org/UKHomeOffice/kb8or.svg?branch=master)](https://travis-ci.org/UKHomeOffice/kb8or)
+
 Continuous Deployment Tool for deploying with [Kubernetes](http://kubernetes.io/).
 
 ## Features
