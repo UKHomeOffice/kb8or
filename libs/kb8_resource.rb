@@ -19,6 +19,18 @@ class Kb8Resource
     @@resource_cache[@kinds] = Kb8Run.get_resource_data(kinds)
   end
 
+  def self.get_resource_from_data(kb8_data, file, context = nil)
+    case kb8_data['kind']
+      when 'ReplicationController'
+        kb8_resource = Kb8Controller.new(kb8_data, file, context)
+      when 'Pod'
+        kb8_resource = Kb8Pod.new(kb8_data, nil, file, context)
+      else
+        kb8_resource = Kb8Resource.new(kb8_data, file)
+    end
+    kb8_resource
+  end
+
   def initialize(kb8_resource_data, file)
     @file = file
     @name = kb8_resource_data['metadata']['name'].to_s
@@ -76,7 +88,7 @@ class Kb8Resource
 
   def update
     case @kind
-      when 'Secret'
+      when 'Secret','ServiceAccount'
         replace
       else
         # TODO: add error handling to use appropriate update type...

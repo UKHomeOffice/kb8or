@@ -86,7 +86,15 @@ class Kb8Pod < Kb8Resource
 
   def phase(refresh=false)
     refresh(refresh)
-    @pod_data['status']['phase']
+    phase = PHASE_UNKNOWN
+    if @pod_data
+      unless @pod_data['status'].nil?
+        unless @pod_data['status']['phase'].nil?
+          phase = @pod_data['status']['phase']
+        end
+      end
+    end
+    phase
   end
 
   def update_error(message)

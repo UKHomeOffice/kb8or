@@ -5,7 +5,9 @@ Make sure you have a working kubernetes cluster running with a properly configur
 The instructions assume you are in the simple_kb8or_deploy directory
 
 ## Step 1 - create namespaces for your application
-Currently kb8or will try to deploy to a namespace of the same name as the environment. For example dev. The namespace must exist before you try to deploy with kb8or.
+Currently kb8or will try to deploy to a namespace of the same name as the environment. For example dev. 
+Namespaces will be created automatically if your Kubernetes user has the correct permissions. 
+If you don't have the correct permissions, the namespace must exist before you try to deploy with kb8or.
 
 For this example deploy we will just use the dev namespace which you can create by doing:
 ```bash
