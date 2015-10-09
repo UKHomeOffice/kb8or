@@ -13,6 +13,7 @@ class Settings
                 :defaults_set,
                 :env_file_glob_path,
                 :kb8_server,
+                :multi_template,
                 :no_automatic_upgrade,
                 :no_controller_ok,
                 :no_rolling_update,

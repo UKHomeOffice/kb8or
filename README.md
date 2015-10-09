@@ -10,8 +10,9 @@ Continuous Deployment Tool for deploying with [Kubernetes](http://kubernetes.io/
 
 ## Pre-requisites
 1. A running Kubernetes cluster
-2. Either locally with; [Ruby](https://www.ruby-lang.org/en/documentation/installation/) 2.x, bundler, [kubectl client](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html) client.
-3. Or with Docker (no install).
+2. Either  
+   1. [Ruby](https://www.ruby-lang.org/en/documentation/installation/) 2.x, bundler, [kubectl client](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html) client.  
+   2. Docker (no install).
 
 In order to run this in a container you'll need docker installed:
 
@@ -22,11 +23,9 @@ In order to run this in a container you'll need docker installed:
 It is currently hosted here: https://quay.io/repository/ukhomeofficedigital/kb8or
 
 ## Local Install
-
-   Or locally:
    
-   Requires Ruby and the [kubectl client](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html).
-   `bundle install`
+1. Download the [kubectl client](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html).
+2. `bundle install`
    
 ## Usage
 
@@ -49,7 +48,7 @@ A deployment will do the following:
 2. Any environment file will then be parsed (based on EnvFileGlobPath set in defaults)
 3. Each deploy will be loaded and settings will be updated
 4. kubectl will be used to setup the Kb8or specific context settings (typically set per environment)
-4. Any .yaml files in the path specfified will be parsed and environment settings replaced. 
+4. Any .yaml files in the path specified will be parsed and environment settings replaced. 
 
 ### Examples:
 
