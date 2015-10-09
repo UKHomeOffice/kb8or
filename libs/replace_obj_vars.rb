@@ -5,7 +5,8 @@ class ReplaceObjVars
 
   REGEXP_VAR = '\${\W*(.*?)\W*}'
   FILE_INCLUDE = 'file://'
-  INCLUDE_KEY = 'FileIncludePaths'
+  INCLUDE_KEYS = %w(Fn::FileIncludePaths FileIncludePaths)
+  MERGE_KEY = 'Fn::OptionalHashItem'
 
   attr_reader :vars
   attr_accessor :updates
@@ -66,10 +67,33 @@ class ReplaceObjVars
       when 'Hash'
         # Replace all elements by key...
         files = []
+        merge_items = []
         obj.each_key do | key |
-          # Detect File replacements here:
-          if key == INCLUDE_KEY
-            files = obj[key]
+          # Detect Special markup here:
+          case key
+            when INCLUDE_KEYS.include?(key)
+              files << obj[key]
+              files  = files.flatten(1)
+            when MERGE_KEY
+              merge_items << obj[key]
+              merge_items = merge_items.flatten(1)
+            else
+          end
+        end
+        merge_items.each do | merge_item |
+          # We'll add back any values here:
+          if merge_item
+            merge_value = ReplaceObjVars.replace(merge_item, context, context_path)
+            if merge_value.is_a?(Hash)
+              obj = obj.merge(merge_value)
+
+              # We've done the replacement, delete the item...
+              obj.delete(MERGE_KEY)
+            end
+            if merge_value.nil?
+              # Substitution when there is no item (NOT when FALSE)
+              obj.delete(MERGE_KEY)
+            end
           end
         end
         new_data = {}

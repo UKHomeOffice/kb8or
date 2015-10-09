@@ -150,14 +150,20 @@ class Kb8Controller < Kb8Resource
       true
     else
       @resources_of_kind['items'].each do |item|
-        if item['metadata']['labels'][ORIGINAL_NAME] == @original_name
-          @live_data = item
-          @name = @live_data['metadata']['name']
-          update_deployment_data
-          return true
-          break
+      if item
+        unless item['metadata'].nil?
+          unless item['metadata']['labels'].nil?
+            if item['metadata']['labels'][ORIGINAL_NAME] == @original_name
+              @live_data = item
+              @name = @live_data['metadata']['name']
+              update_deployment_data
+              return true
+              break
+            end
+          end
         end
       end
+    end
       false
     end
   end
@@ -230,7 +236,7 @@ class Kb8Controller < Kb8Resource
     refresh_status(refresh)
 
     if refresh || (!@pods)
-      debug "Reloading pod data..."
+      debug 'Reloading pod data...'
       # First get all the pods...
       @actual_replicas = @pod_status_data['items'].count
       debug "Actual pods running:#{@actual_replicas}"
@@ -238,13 +244,13 @@ class Kb8Controller < Kb8Resource
 
       @pods = []
       if @actual_replicas == @intended_replicas
-        debug "All replicas loaded..."
+        debug 'All replicas loaded...'
         @pod_status_data['items'].each do | pod |
           @pods << Kb8Pod.new(pod, self)
         end
-        debug "All pods loaded..."
+        debug 'All pods loaded...'
       else
-        debug "Invalid number of replicas - need we wait?"
+        debug 'Invalid number of replicas - need we wait?'
       end
     end
   end

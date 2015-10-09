@@ -3,7 +3,6 @@ require 'methadone'
 class Kb8DeployUnit
 
   attr_accessor :resources,
-                :controller,
                 :context
 
   include Methadone::Main
@@ -24,28 +23,25 @@ class Kb8DeployUnit
       debug "Loading kb8 file:'#{file}'..."
       kb8_data = @context.resolve_vars_in_file(file)
       debug "kb8 data:#{kb8_data}"
-      case kb8_data['kind']
-        when 'ReplicationController'
-          if @controller
-            puts 'Only one controller supported per application tier (kb8 directory)'
-            exit 1
-          else
-            @controller  = Kb8Controller.new(kb8_data, file, @context)
-          end
-        else
-          if kb8_data['kind'] == 'Pod'
-            kb8_resource = Kb8Pod.new(kb8_data, nil, file, @context)
-          else
-            kb8_resource = Kb8Resource.new(kb8_data, file)
-          end
-          unless @resources[kb8_resource.kind]
-            @resources[kb8_resource.kind] = []
-          end
-          @resources[kb8_resource.kind] << kb8_resource
+
+      new_items = nil
+      if @context.settings.multi_template
+        multi_template = MultiTemplate.new(kb8_data, @context, file, dir)
+        new_items = multi_template.items if multi_template.valid_data?
+      end
+      unless new_items
+        new_items = []
+        new_items << Kb8Resource.get_resource_from_data(kb8_data, file, @context)
+      end
+      new_items.each do | kb8_resource |
+        unless @resources[kb8_resource.kind]
+          @resources[kb8_resource.kind] = []
+        end
+        @resources[kb8_resource.kind] << kb8_resource
       end
     end
     debug "NoControllerOk:#{@context.settings.no_controller_ok}"
-    unless @controller
+    unless @resources.has_key?('ReplicationController')
       unless @context.settings.no_controller_ok
         puts "Invalid deployment unit (Missing controller) in dir:#{dir}/*.yaml"
         exit 1
@@ -73,9 +69,11 @@ class Kb8DeployUnit
   end
 
   def deploy
+    # Order resources before deploying them...
     deploy_items = []
     @resources.each do |key, resource_category|
       next if key == 'Pod'
+      next if key == 'ReplicationController'
       resource_category.each do |resource|
         deploy_items << resource
       end
@@ -83,11 +81,14 @@ class Kb8DeployUnit
     if @resources.has_key?('Pod')
       deploy_items == deploy_items.concat(@resources['Pod'])
     end
-    if @controller
-      if @controller.exist? && @context.settings.no_automatic_upgrade && (!@context.always_deploy)
-        puts "No automatic upgrade specified for #{@controller.kinds}/#{@controller.name} skipping..."
-      else
-        deploy_items << @controller
+    if @resources.has_key?('ReplicationController')
+      possible_items = @resources['ReplicationController']
+      possible_items.each do | item |
+        if item.exist? && @context.settings.no_automatic_upgrade && (!@context.always_deploy)
+          puts "No automatic upgrade specified for #{item.kinds}/#{item.name} skipping..."
+        else
+          deploy_items << item
+        end
       end
     end
     deploy_items.each do | item |
