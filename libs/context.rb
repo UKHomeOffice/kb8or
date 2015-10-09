@@ -74,6 +74,16 @@ class Context
     vars_resolver.replace(data)
   end
 
+  def update_vars(vars)
+    @vars = @vars.merge(vars)
+  end
+
+  def new_with_vars(vars)
+    context = new({})
+    context.update_vars(vars)
+    context
+  end
+
   def new(data)
     debug "Cloning new context..."
     context = Context.new(@settings.new(data),
