@@ -52,6 +52,9 @@ class Deploy
       puts "No environment set, either specify environment option (-e) or a default environment in Defaults.yaml."
       exit 1
     end
+    # Add any variables set at the start of the deploy...
+    context.update_vars(deploy_data)
+
     # Load deployment information for each 'deploy' (kb8 directory) that exists
     deploy_data['Deploys'].each do | deploy_unit |
       @deploy_units << Kb8DeployUnit.new(deploy_unit, @context)
