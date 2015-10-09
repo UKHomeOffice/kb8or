@@ -13,28 +13,20 @@ Continuous Deployment Tool for deploying with [Kubernetes](http://kubernetes.io/
 
 ## Pre-requisites
 1. A running Kubernetes cluster
-2. Either locally with; [Ruby](https://www.ruby-lang.org/en/documentation/installation/) 2.x, bundler, [kubectl client](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html) client.
-3. Or with Docker (no install).
+2. Either  
+   1. [Ruby](https://www.ruby-lang.org/en/documentation/installation/) 2.x, bundler, [kubectl client](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html) client.  
+   2. [Docker](#docker-prerequisites).
 
-In order to run this in a container you'll need docker installed:
-
-* [Windows](https://docs.docker.com/windows/started)
-* [OS X](https://docs.docker.com/mac/started/)
-* [Linux](https://docs.docker.com/linux/started/)
-
-It is currently hosted here: https://quay.io/repository/ukhomeofficedigital/kb8or
-
-## Local Install
-
-   Or locally:
+## Install (if not using Docker)
    
-   Requires Ruby and the [kubectl client](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html).
-   `bundle install`
+1. Download the [kubectl client](http://kubernetes.io/v1.0/docs/getting-started-guides/aws/kubectl.html).
+2. `bundle install`
    
 ## Usage
 
 ### As a container:
 `docker run -it --rm -v ${PWD}:/var/lib/deploy quay.io/ukhomeofficedigital/kb8or --help`
+
 ### Locally:
 `./kb8or.rb --help`
 
@@ -48,15 +40,30 @@ Deploy to specific environment:
 
 A deployment will do the following:
 
-1. Any defaults.yaml will be loaded (from the same directory)
-2. Any environment file will then be parsed (based on EnvFileGlobPath set in defaults)
+1. Any (defaults.yaml) will be loaded (from the same directory as the deployment)
+2. Any environment data will then be parsed (based on EnvFileGlobPath set in config)
 3. Each deploy will be loaded and settings will be updated
 4. kubectl will be used to setup the Kb8or specific context settings (typically set per environment)
-4. Any .yaml files in the path specfified will be parsed and environment settings replaced. 
+4. Any Kubernetes .yaml files in the path specified will be parsed and deployed / updated as required.
+
+### Schema
+
+All features and configurable options are described in the [Schema Documentation](./docs/schema.md).
 
 ### Examples:
 
-See [example/Example.md](example/Example.md)
+* For a walk through of features see [docs/example/Example.md](docs/example/Example.md).
+* Example of creation of multiple ResourceControllers from a [templated Elasticsearch](docs/example/elasticsearch/Example.md) resource.
+
+## Docker-prerequisites
+
+In order to run this in a container you'll need docker installed:
+
+* [Windows](https://docs.docker.com/windows/started)
+* [OS X](https://docs.docker.com/mac/started/)
+* [Linux](https://docs.docker.com/linux/started/)
+
+It is currently hosted here: https://quay.io/repository/ukhomeofficedigital/kb8or
 
 ## Contributing
 

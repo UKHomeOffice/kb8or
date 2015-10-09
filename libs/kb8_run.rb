@@ -37,8 +37,9 @@ class Kb8Run
     ERROR_IO_TLS_TIMEOUT = /error: couldn't read version from server.*: TLS handshake timeout/
     RETRY_ERRS = [ERROR_IO_REFUSED, ERROR_IO_TIMEOUT, ERROR_IO_TLS_TIMEOUT]
 
-    def initialize(status, cmd, output)
+    def initialize(status, cmd, output, input)
       @output = output
+      @message = ''
 
       # Work out if the error is retryable...
       @retryable = false
@@ -48,8 +49,11 @@ class Kb8Run
           break
         end
       end
-      @message = "Error (exit code:'#{status.exitstatus.to_i}') running '#{cmd}':\n#{output}"
-      @message = "Error (Tried #{RETRY_COUNT} times) #{@message}" if @retryable
+      if input
+        @message = "Error when using stdin:\n#{input}\n"
+      end
+      @message = "#{@message}Error (exit code:'#{status.exitstatus.to_i}') running '#{cmd}':\n#{output}\n"
+      @message = "#{@message}Error (Tried #{RETRY_COUNT} times) #{@message}" if @retryable
     end
 
     def enough_already?(errors)
@@ -89,7 +93,7 @@ class Kb8Run
         ok = true
       else
         if cmd.start_with?(CMD_KUBECTL)
-          error = KubeCtlError.new(runner.status, cmd, runner.stderr)
+          error = KubeCtlError.new(runner.status, cmd, runner.stderr, input)
           raise error if error.enough_already?(errors)
           errors << error
         else
@@ -129,14 +133,17 @@ class Kb8Run
   end
 
   def self.create(yaml_data)
+    debug "Creating with:'#{yaml_data.to_s}'"
     Kb8Run.run(CMD_CREATE, true, true, yaml_data.to_s)
   end
 
   def self.replace(yaml_data)
+    debug "Replacing with:'#{yaml_data.to_s}'"
     Kb8Run.run(CMD_REPLACE, true, true, yaml_data.to_s)
   end
 
   def self.rolling_update(yaml_data, old_controller)
+    debug "Rolling update with:'#{yaml_data.to_s}'"
     cmd = CMD_ROLLING_UPDATE % old_controller
     Kb8Run.run(cmd, true, true, yaml_data.to_s)
   end

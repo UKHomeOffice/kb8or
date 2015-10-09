@@ -1,0 +1,55 @@
+---
+
+es_transport_port:
+  containerPort: 9300
+  name: transport
+  protocol: TCP
+
+Deploys:
+  - path: ../containers/nfidd/elastic_search
+    UsePrivateRegistry: false
+    MultiTemplate:
+      Name: es-template
+      Items:
+      - Name: es-master
+        Vars:
+          az: ""
+          es_tier: "master"
+          es_master: "true"
+          es_client: "false"
+          es_data: "false"
+          es_ports:
+          - ${ es_transport_port }
+          es_replicas: 1
+          node_selector:
+      - Name: es-client
+        Vars:
+          az: ""
+          es_tier: "client"
+          es_master: "false"
+          es_client: "true"
+          es_data: "false"
+          es_ports:
+          - ${ es_transport_port }
+          - containerPort: 9200
+            name: http
+            protocol: TCP
+          es_replicas: 2
+          node_selector:
+      - Name: es-data
+        EnumVar:
+          Name: az
+          Values:
+          - eu-west-1a
+          - eu-west-1b
+          - eu-west-1c
+        Vars:
+          es_tier: "data"
+          es_master: "false"
+          es_client: "false"
+          es_data: "true"
+          es_ports:
+          - ${ es_transport_port }
+          es_replicas: 1
+          node_selector:
+            aws_az: "${ az }"
