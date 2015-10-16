@@ -9,7 +9,7 @@ class Runner
                 :outputted,
                 :screen
 
-  def initialize(cmd, output, input, &block)
+  def initialize(cmd, output, input)
 
     @output = output
 
