@@ -46,7 +46,10 @@ class Context
       env_name = $1
       if env_name == @env_name
         debug "env=#{env_name}"
-        @vars = Context.resolve_env_file(file_name)
+        # Ensure we set the defaults as vars BEFORE we add environment specifics:
+        @vars = @settings.defaults
+        env_vars = Context.resolve_env_file(file_name)
+        @vars = @vars.merge(env_vars)
         @vars = @vars.merge(@overridden_vars)
         break
       end
@@ -93,6 +96,8 @@ class Context
                           @env_name,
                           @vars,
                           @overridden_vars)
+    # Update vars from settings:
+    context.update_vars(@settings.settings_as_vars)
     context
   end
 end

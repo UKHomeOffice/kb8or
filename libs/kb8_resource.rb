@@ -31,6 +31,17 @@ class Kb8Resource
     kb8_resource
   end
 
+  def self.create_from_name(full_name)
+    name_parts = full_name.split('/')
+    unless name_parts.length == 2
+      raise "Invalid Kubernetes resource name:'#{full_name}. Expecting kind/name format."
+    end
+    kind = name_parts[0][0..-2]
+    name = name_parts[1]
+    kb8_resource_data = { 'metadata' => { 'name' => name }, 'kind' => kind }
+    Kb8Resource.new(kb8_resource_data, nil)
+  end
+
   def initialize(kb8_resource_data, file)
     @file = file
     @name = kb8_resource_data['metadata']['name'].to_s

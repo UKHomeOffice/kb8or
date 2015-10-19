@@ -69,6 +69,16 @@ class Kb8DeployUnit
   end
 
   def deploy
+    if @context.settings.delete_items
+      @context.settings.delete_items.each do |resource_name|
+        resource = Kb8Resource.create_from_name(resource_name)
+        if resource.exist?
+          puts "Deleting #{resource.kinds}/#{resource.name}..."
+          resource.delete()
+        end
+      end
+    end
+
     # Order resources before deploying them...
     deploy_items = []
     @resources.each do |key, resource_category|
