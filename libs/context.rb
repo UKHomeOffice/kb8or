@@ -30,6 +30,8 @@ class Context
     @env_name = env_name || settings.default_env_name
     @vars = vars
     @overridden_vars = overridden_vars
+    # Cope with settings we want to access as variables:
+
   end
 
   def environment
@@ -93,6 +95,8 @@ class Context
                           @env_name,
                           @vars,
                           @overridden_vars)
+    # Update vars from settings:
+    context.update_vars(@settings.settings_as_vars)
     context
   end
 end
