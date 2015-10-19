@@ -11,6 +11,7 @@ class Settings
                 :defaults,
                 :default_env_name,
                 :defaults_set,
+                :delete_items,
                 :env_file_glob_path,
                 :kb8_server,
                 :multi_template,
@@ -33,7 +34,12 @@ class Settings
       downcase
   end
 
+  def settings_as_vars
+    @values_by_original_names
+  end
+
   def initialize(deploy_home, clone=false)
+    @values_by_original_names = {}
     defaults_file = File.join(deploy_home, FILE_DEFAULTS)
     if File.exist?(defaults_file)
       debug "Loading settings"
@@ -61,6 +67,7 @@ class Settings
         if self.respond_to? "#{actual_key}="
           debug "Setting #{actual_key}= (from #{key} in yaml) to #{value}"
           self.__send__("#{actual_key}=", value)
+          @values_by_original_names[key] = value
         end
       end
     end

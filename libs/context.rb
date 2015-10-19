@@ -35,6 +35,9 @@ class Context
   def environment
     return @vars unless @vars.nil?
 
+    # Ensure we set the defaults as vars BEFORE we add environment specifics:
+    @vars = @settings.defaults
+
     # If not set, Try to find them...
     glob_path = File.join(@deployment_home, @settings.env_file_glob_path)
     regexp_find = glob_path.gsub(/\*/, '(.*)')
@@ -93,6 +96,8 @@ class Context
                           @env_name,
                           @vars,
                           @overridden_vars)
+    # Update vars from settings:
+    context.update_vars(@settings.settings_as_vars)
     context
   end
 end

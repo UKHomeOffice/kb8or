@@ -75,7 +75,7 @@ class Kb8Run
     end
   end
 
-  def self.run(cmd, capture=false, term_output=true, input=nil)
+  def self.run(cmd, capture=false, term_output=true, input=nil, safe=true)
 
     errors = []
     ok = false
@@ -83,9 +83,13 @@ class Kb8Run
       # Run process and capture output if required...
       debug "Running:'#{cmd}'"
       pid = nil
-      # The ; forces a shell execution...
-      # stdout_str, stderr_str, status = Open3.capture3(cmd + ';', :stdin_data=>input.to_s)
-      runner = SafeRunner.new(cmd, term_output, input)
+      if safe
+        runner = SafeRunner.new(cmd, term_output, input)
+      else
+        # Something wrong with thread handling - no problem when not parsing returned text
+        runner = Runner.new(cmd, term_output, input)
+      end
+
       pid = runner.status
       if runner.status.success?
         if capture
@@ -146,7 +150,7 @@ class Kb8Run
   def self.rolling_update(yaml_data, old_controller)
     debug "Rolling update with:'#{yaml_data.to_s}'"
     cmd = CMD_ROLLING_UPDATE % old_controller
-    Kb8Run.run(cmd, true, true, yaml_data.to_s)
+    Kb8Run.run(cmd, true, true, yaml_data.to_s, false)
   end
 
   def self.delete_pods(selector_string)
