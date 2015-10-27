@@ -48,6 +48,14 @@ or included files.
 
 ## Settings
 
+Settings control how kb8or works. All settings may be used as variables also e.g.:
+
+```yaml
+    containers:
+      - name: checking
+        image: ${ PrivateRegistry }/checking:replace.me
+```
+
 ### ContainerVersionGlobPath
 
 #### Scope: Default.yaml, Deployment.yaml 
