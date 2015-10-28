@@ -27,10 +27,11 @@ class Kb8Pod < Kb8Resource
   FAIL_CONTAINER_RESTART_COUNT = 3
   RETRY_BACKOFF_SECONDS = 10
 
-  attr_reader :pod_data,
-              :controller,
+  attr_reader :controller,
               :container_specs,
               :error_message,
+              :failing_containers,
+              :pod_data,
               :restart_never
 
   def initialize(pod_data, rc=nil, file=nil, context=nil)
@@ -47,6 +48,7 @@ class Kb8Pod < Kb8Resource
     end
     @restart_never = false
     @restart_never = @pod_data['spec']['restartPolicy'] == 'Never'
+    @failing_containers = []
 
     # Initialize the base kb8 resource
     super(pod_data, file)
@@ -170,12 +172,12 @@ class Kb8Pod < Kb8Resource
         if container_status['restartCount']
           if container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
             debug "Container restarting:'#{container_status['name']}'"
+            update_failing_containers(container_status)
             condition_value = Kb8Pod::CONDITION_RESTARTING
           end
           if container_status['restartCount'] > 0
             puts "...Detected restarting container:'#{container_status['name']}'. Backing off to check again in #{RETRY_BACKOFF_SECONDS}"
             sleep RETRY_BACKOFF_SECONDS
-            condition_value = Kb8Pod::CONDITION_ERR_WAIT
           end
         end
         # Can do something more generic - if no controller but for now:
@@ -186,6 +188,7 @@ class Kb8Pod < Kb8Resource
               exit_code = container_status['state']['terminated']['exitCode']
               if exit_code != 0
                 update_error("Container terminated:'#{container_status['name']}' with exit code:#{exit_code}")
+                update_failing_containers(container_status)
                 condition_value = Kb8Pod::PHASE_FAILED
               end
             end
@@ -216,9 +219,16 @@ class Kb8Pod < Kb8Resource
         end
         update_error(error_message)
         condition_value = Kb8Pod::CONDITION_ERR_WAIT
+        update_failing_containers(container_status)
       end
     end
     condition_value
+  end
+
+  def update_failing_containers(container_status)
+    unless @failing_containers.include?(container_status['name'])
+      @failing_containers << container_status['name']
+    end
   end
 
   def create
@@ -251,13 +261,13 @@ class Kb8Pod < Kb8Resource
     puts @error_message
     debug "Err Status:#{@last_condition.to_s}"
     unless @last_condition == Kb8Pod::CONDITION_ERR_WAIT
-      puts "Failing pod logs below for pod:#{@name}"
-      puts '=============================='
-      container_specs.each do |container_spec|
-        puts Kb8Run.get_pod_logs(@name, container_spec.name)
+      @failing_containers.each do |container_name|
+        puts "Failing pod logs below for pod:'#{@name}', container:#{container_name}"
+        puts '=============================='
+        puts Kb8Run.get_pod_logs(@name, container_name)
+        puts '=============================='
+        puts "Failing pod logs above for pod:'#{@name}', container:#{container_name}"
       end
-      puts '=============================='
-      puts "Failing pod logs above for pod:#{@name}"
     end
   end
 end
