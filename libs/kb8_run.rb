@@ -16,7 +16,7 @@ class Kb8Run
   CMD_CREATE = "#{CMD_KUBECTL} create -f -"
   CMD_REPLACE = "#{CMD_KUBECTL} replace -f -"
   CMD_DELETE = "#{CMD_KUBECTL} delete %s/%s"
-  CMD_GET_POD_LOGS = "#{CMD_KUBECTL} logs %s"
+  CMD_GET_POD_LOGS = "#{CMD_KUBECTL} logs %s %s"
   CMD_GET_POD = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get pods -l %s -o yaml"
   CMD_GET_EVENTS = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get events -o yaml"
   CMD_GET_RESOURCE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get %s -o yaml"
@@ -180,12 +180,16 @@ class Kb8Run
     yaml_data
   end
 
-  def self.get_pod_logs(pod_name)
+  def self.get_pod_logs(pod_name, container_name=nil)
     unless pod_name
       raise "Error - expecting a valid string for pod_name"
     end
     debug "Getting logs from kubectl:\n#{pod_name}"
-    cmd = CMD_GET_POD_LOGS % pod_name
+    options = [pod_name]
+    if container_name
+      options << " -c #{container_name}"
+    end
+    cmd = CMD_GET_POD_LOGS % options
     kb8_out = Kb8Run.run(cmd, true, false)
     kb8_out
   end

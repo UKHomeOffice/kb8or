@@ -253,7 +253,9 @@ class Kb8Pod < Kb8Resource
     unless @last_condition == Kb8Pod::CONDITION_ERR_WAIT
       puts "Failing pod logs below for pod:#{@name}"
       puts '=============================='
-      puts Kb8Run.get_pod_logs(@name)
+      container_specs.each do |container_spec|
+        puts Kb8Run.get_pod_logs(@name, container_spec.name)
+      end
       puts '=============================='
       puts "Failing pod logs above for pod:#{@name}"
     end

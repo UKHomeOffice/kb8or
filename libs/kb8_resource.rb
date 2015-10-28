@@ -2,13 +2,14 @@ require_relative 'kb8_utils'
 
 class Kb8Resource
 
-  attr_accessor :live_data,
-                :name,
+  attr_accessor :file,
                 :kind,
                 :kinds,
-                :file,
-                :yaml_data,
-                :resources_of_kind
+                :live_data,
+                :name,
+                :original_name,
+                :resources_of_kind,
+                :yaml_data
 
   include Methadone::Main
   include Methadone::CLILogging
@@ -48,6 +49,8 @@ class Kb8Resource
     @kind = kb8_resource_data['kind'].to_s
     @kinds = @kind + 's'
     @yaml_data = kb8_resource_data
+    # This holds whilst we always use the file data...
+    @original_name = @name.dup
   end
 
   def data(refresh=false)
@@ -107,5 +110,9 @@ class Kb8Resource
         delete
         create
     end
+  end
+
+  def original_full_name
+    "#{@kinds}/#{@original_name}"
   end
 end

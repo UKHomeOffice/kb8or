@@ -14,7 +14,10 @@ class Kb8or
   include Methadone::Main
   include Methadone::CLILogging
 
-  version     File.read(File.join(KB8_HOME, 'version'))
+  VERSION_STRING = File.read(File.join(KB8_HOME, 'version'))
+  KB8_BANNER = "Kb8or:v%s"
+
+  version     VERSION_STRING
   description 'Will create OR update a kb8 application in a re-runnable way'
 
   arg :deploy_file
@@ -28,9 +31,11 @@ class Kb8or
     deploy = Deploy.new(deploy_file,
                         options[:always_deploy],
                         options[:env_name],
-                        options[:variables])
+                        options[:variables],
+                        options[:only_deploy])
 
     begin
+      puts KB8_BANNER % VERSION_STRING
       if options[:tunnel]
         tunnel = Tunnel.new(options[:tunnel],
                             options[:tunnel_options],
@@ -102,6 +107,12 @@ class Kb8or
 
   opts.on('-c', '--close-tunnel', 'Close any tunnel opened previously') do
     options[:close_tunnel] = true
+  end
+
+  opts.on('-d DEPLOY_ONLY_CSV',
+          '--deploy-only-list',
+          'Limit deployment to only the resources listed (csv) e.g. ResourceControllers/mycontroller') do | only_deploy |
+    options[:only_deploy] = only_deploy.split(',')
   end
 
   use_log_level_option
