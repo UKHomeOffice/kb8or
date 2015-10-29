@@ -17,8 +17,7 @@ class Kb8Controller < Kb8Resource
                 :pods,
                 :intended_replicas,
                 :actual_replicas,
-                :new_deploy_id,
-                :original_name
+                :new_deploy_id
 
   class Selectors
     attr_accessor :selectors_hash
@@ -48,9 +47,6 @@ class Kb8Controller < Kb8Resource
 
     # Initialize the base kb8 resource
     super(yaml_data, file)
-
-    # This holds whilst we always use the file data...
-    @original_name = @name.dup
 
     @pods = []
     @container_specs = []
@@ -224,7 +220,6 @@ class Kb8Controller < Kb8Resource
     end
     unless failed_pods.count < 1
       # TODO: add some diagnostics e.g. logs and which failed...
-      puts 'Error, failing pods...'
       failed_pods.each do | pod |
         pod.report_on_pod_failure
       end

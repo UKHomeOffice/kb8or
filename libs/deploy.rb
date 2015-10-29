@@ -17,7 +17,8 @@ class Deploy
   def initialize(deploy_file,
                  always_deploy=false,
                  env_name=nil,
-                 overridden_params=nil)
+                 overridden_params=nil,
+                 only_deploy=nil)
 
     @deploy_units = []
     deploy_home = File.dirname(deploy_file)
@@ -49,7 +50,7 @@ class Deploy
     # This call is crucial as it populates the environment the first time
     # NB The environment can be set as a default setting...
     unless @context.environment
-      puts "No environment set, either specify environment option (-e) or a default environment in Defaults.yaml."
+      puts 'No environment set, either specify environment option (-e) or a default environment in Defaults.yaml.'
       exit 1
     end
     # Add any variables set at the start of the deploy...
@@ -57,7 +58,7 @@ class Deploy
 
     # Load deployment information for each 'deploy' (kb8 directory) that exists
     deploy_data['Deploys'].each do | deploy_unit |
-      @deploy_units << Kb8DeployUnit.new(deploy_unit, @context)
+      @deploy_units << Kb8DeployUnit.new(deploy_unit, @context, only_deploy)
     end
   end
 

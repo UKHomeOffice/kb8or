@@ -2,14 +2,15 @@ require 'methadone'
 
 class Kb8DeployUnit
 
-  attr_accessor :resources,
-                :context
+  attr_accessor :context,
+                :only_deploy,
+                :resources
 
   include Methadone::Main
   include Methadone::CLILogging
 
-  def initialize(data, context)
-
+  def initialize(data, context, only_deploy=nil)
+    @only_deploy = only_deploy
     debug 'Loading new context'
     @context = context.new(data)
     debug 'Got new context'
@@ -102,7 +103,12 @@ class Kb8DeployUnit
       end
     end
     deploy_items.each do | item |
-      create_or_update(item)
+      deploy = (@only_deploy.nil? || @only_deploy.to_a.include?(item.original_full_name))
+      if deploy
+        create_or_update(item)
+      else
+        puts "Skipping resource (-d):#{item.original_full_name}"
+      end
     end
   end
 end
