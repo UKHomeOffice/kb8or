@@ -107,6 +107,9 @@ class Kb8Controller < Kb8Resource
   def update_deployment_data
     # Add new deployment id and name etc...
     yaml_data['metadata']['name'] = "#{@original_name}-#{deploy_id}"
+    unless yaml_data['metadata']['labels']
+      yaml_data['metadata']['labels'] = {}
+    end
     yaml_data['metadata']['labels'][ORIGINAL_NAME] = @original_name
     yaml_data['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
     yaml_data['spec']['selector'][DEPLOYMENT_LABEL] = deploy_id
