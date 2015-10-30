@@ -11,6 +11,7 @@ class Kb8Run
 
   API_VERSION = 'v1'
   MISSING_DATA_RETRIES = 3
+  LEGACY_CONTEXT_NAME = 'kb8or-context'
   CMD_KUBECTL = 'kubectl'
   CMD_ROLLING_UPDATE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" rolling-update %s -f -"
   CMD_CREATE = "#{CMD_KUBECTL} create -f -"
@@ -22,8 +23,10 @@ class Kb8Run
   CMD_GET_RESOURCE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get %s -o yaml"
   CMD_DELETE_PODS = "#{CMD_KUBECTL} delete pods -l %s"
   CMD_CONFIG_CLUSTER = "#{CMD_KUBECTL} config set-cluster %s --server=%s"
-  CMD_CONFIG_CONTEXT = "#{CMD_KUBECTL} config set-context kb8or-context --cluster=%s --namespace=%s"
-  CMD_CONFIG_DEFAULT = "#{CMD_KUBECTL} config use-context kb8or-context"
+  CMD_CONFIG_CONTEXT_SERVER = "#{CMD_KUBECTL} config set-context #{LEGACY_CONTEXT_NAME} --cluster=%s --namespace=%s"
+  CMD_CONFIG_CONTEXT = "#{CMD_KUBECTL} config set-context %s --cluster=%s --namespace=%s %s"
+  CMD_CONFIG_DEFAULT = "#{CMD_KUBECTL} config use-context %s"
+
 
   class KubeCtlError < StandardError
 
@@ -132,9 +135,25 @@ class Kb8Run
     cmd = CMD_CONFIG_CLUSTER % [env_name, server]
     Kb8Run.run(cmd, false, true)
     # Ensure a namespace compatible name...
-    cmd = CMD_CONFIG_CONTEXT % [env_name, env_name]
+    cmd = CMD_CONFIG_CONTEXT_SERVER % [env_name, env_name]
     Kb8Run.run(cmd, false, true)
-    Kb8Run.run(CMD_CONFIG_DEFAULT, false, true)
+    cmd = CMD_CONFIG_DEFAULT % LEGACY_CONTEXT_NAME
+    Kb8Run.run(cmd, false, true)
+  end
+
+  def self.update_context(kb8_context)
+    # Add the config commands (read from the environments)
+    if kb8_context.user
+      user_flag = " --user=#{kb8_context.user}"
+    else
+      user_flag = ''
+    end
+    # Create / update context entry
+    cmd = CMD_CONFIG_CONTEXT % [kb8_context.name, kb8_context.cluster, kb8_context.namespace, user_flag]
+    Kb8Run.run(cmd, false, true)
+    # Set default context...
+    cmd = CMD_CONFIG_DEFAULT % kb8_context.name
+    Kb8Run.run(cmd, false, true)
   end
 
   def self.create(yaml_data)

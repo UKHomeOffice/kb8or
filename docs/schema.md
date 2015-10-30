@@ -112,9 +112,30 @@ This example here will load the variables from the file ./environments/vagrant.y
 DefaultEnvName: vagrant
 ```
 
-### Kb8Server
+### Kb8context
 
-#### Scope: Default.yaml, a_deployment.yaml
+#### Scope 
+
+Will be used to set the context for a deployment.
+
+#### Example
+
+The example below will create a ./kube/config entry for the server with the environment name which will then be used for 
+deployments. The cluster and user entries can be created in advance and augmented with other parameters where required. 
+See [kubectl config set-cluster](https://cloud.google.com/container-engine/docs/kubectl/config-set-cluster).
+
+The Cluster and Namespace key values are mandatory. The user should be set when required. 
+
+```yaml
+Kb8Context:
+  cluster: prod_cluster
+  user: prod_user
+  namespace: prod
+```
+
+### Kb8Server - deprecate, see (Kb8Context)[#kb8context]
+
+#### Scope: Default.yaml, environment.yaml
 
 Details which Kubernetes server should be used to deploy to.
 
