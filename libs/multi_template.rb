@@ -25,6 +25,11 @@ class MultiTemplate
     # Now resolve the vars data with itself...
     new_vars = item_context.resolve_vars(new_vars)
 
+    # OK so there's a recursive thing here, lets handle two levels deep...
+    item_context = item_context.new_with_vars(new_vars)
+    # Now resolve the vars data with itself...
+    new_vars = item_context.resolve_vars(new_vars)
+
     # Finally, use the latest data:
     item_context = item_context.new_with_vars(new_vars)
     resource_data = item_context.resolve_vars(kb8_data)
