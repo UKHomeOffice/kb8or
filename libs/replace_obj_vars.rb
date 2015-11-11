@@ -3,7 +3,8 @@ require_relative 'kb8_utils'
 class ReplaceObjVars
   # Class to replace any string references in an object with values from a hash
 
-  REGEXP_VAR = '\${\W*(.*?)\W*}'
+  REGEXP_SPECIFIC_VAR = '\${\W*(%s)\W*}'
+  REGEXP_VAR = REGEXP_SPECIFIC_VAR % '.*?'
   FILE_INCLUDE = 'file://'
   INCLUDE_KEYS = %w(Fn::FileIncludePaths FileIncludePaths)
   MERGE_KEY = 'Fn::OptionalHashItem'
@@ -50,14 +51,12 @@ class ReplaceObjVars
             return context.vars[key] if context.vars.has_key?(key)
           when /#{REGEXP_VAR}/
             # Multiple strings found so replace all matching
-            /#{REGEXP_VAR}/.match(obj) do | match |
-              match.captures.each do |capture|
-                key = capture.to_s
-
-                if context.vars.has_key?(key)
-                  debug "obj update (multimatch) - #{context.vars[key]}"
-                  obj = obj.gsub(/(#{REGEXP_VAR})/, context.vars[key].to_s)
-                end
+            obj.scan(/#{REGEXP_VAR}/).flatten.each do | match_string |
+              key = match_string.to_s
+              if context.vars.has_key?(key)
+                # This needs to handle multiple vars in the same string
+                capture_regexp = REGEXP_SPECIFIC_VAR % key
+                obj = obj.gsub(/(#{capture_regexp})/, context.vars[key].to_s)
               end
             end
           else
