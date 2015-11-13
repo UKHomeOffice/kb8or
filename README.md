@@ -24,6 +24,10 @@ Continuous Deployment Tool for deploying with [Kubernetes](http://kubernetes.io/
    
 ## Usage
 
+### Schema
+
+All features and configurable options are described in the [Schema Documentation](./docs/schema.md).
+
 ### As a container:
 `docker run -it --rm -v ${PWD}:/var/lib/deploy quay.io/ukhomeofficedigital/kb8or --help`
 
@@ -45,10 +49,6 @@ A deployment will do the following:
 3. Each deploy will be loaded and settings will be updated
 4. kubectl will be used to setup the Kb8or specific context settings (typically set per environment)
 4. Any Kubernetes .yaml files in the path specified will be parsed and deployed / updated as required.
-
-### Schema
-
-All features and configurable options are described in the [Schema Documentation](./docs/schema.md).
 
 ### Examples:
 

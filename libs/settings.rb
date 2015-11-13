@@ -13,6 +13,7 @@ class Settings
                 :defaults_set,
                 :delete_items,
                 :env_file_glob_path,
+                :kb8_context,
                 :kb8_server,
                 :multi_template,
                 :no_automatic_upgrade,
