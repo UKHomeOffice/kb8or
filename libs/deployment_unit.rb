@@ -95,7 +95,7 @@ class Kb8DeployUnit
     if @resources.has_key?('ReplicationController')
       possible_items = @resources['ReplicationController']
       possible_items.each do | item |
-        if item.exist? && @context.settings.no_automatic_upgrade && (!@context.always_deploy)
+        if item.exist? && item.context.settings.no_automatic_upgrade && (!@context.always_deploy)
           puts "No automatic upgrade specified for #{item.kinds}/#{item.name} skipping..."
         else
           deploy_items << item

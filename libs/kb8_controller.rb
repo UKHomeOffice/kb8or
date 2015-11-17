@@ -13,6 +13,7 @@ class Kb8Controller < Kb8Resource
 
   attr_accessor :selectors,
                 :container_specs,
+                :context,
                 :pod_status_data,
                 :pods,
                 :intended_replicas,
@@ -51,6 +52,7 @@ class Kb8Controller < Kb8Resource
     @pods = []
     @container_specs = []
     @no_rolling_updates = context.settings.no_rolling_update
+    @context = context
 
     # Initialise the selectors used to find relevant pods
     unless yaml_data['spec']
