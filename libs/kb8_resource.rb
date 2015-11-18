@@ -39,7 +39,7 @@ class Kb8Resource
     end
     kind = name_parts[0][0..-2]
     name = name_parts[1]
-    kb8_resource_data = { 'metadata' => { 'name' => name }, 'kind' => kind }
+    kb8_resource_data = { 'apiVersion' => 'v1', 'metadata' => { 'name' => name }, 'kind' => kind }
     Kb8Resource.new(kb8_resource_data, nil)
   end
 

@@ -64,22 +64,15 @@ class Deploy
 
   # Method to carry out the deployments
   def deploy
-    if @context.settings.kb8_server && @context.settings.kb8_context
-      puts 'Can\'t specify both Kb8Server and Kb8Context (use Kb8Context)'
-      exit 1
-    end
-    context_set = false
-    if @context.settings.kb8_context
-      Kb8Run.update_context(Kb8Context.new(@context.settings.kb8_context))
-      context_set = true
-    end
-    if @context.settings.kb8_server
-      Kb8Run.update_environment(@context.env_name, @context.settings.kb8_server)
-      context_set = true
-    end
-    unless context_set
+    unless @context.settings.kb8_context
       puts 'Must set Kb8Context for environment'
       exit 1
+    end
+    kb8_context = Kb8Context.new(@context.settings.kb8_context)
+    Kb8Run.update_context(kb8_context)
+    kb8_namespace = Kb8Resource.create_from_name("Namespaces/#{kb8_context.namespace}")
+    unless kb8_namespace.exist?
+      kb8_namespace.create
     end
     @deploy_units.each do | deploy_unit |
       deploy_unit.deploy
