@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
     tar
 
 # Download the kubectl binary:
-ENV KUBE_VER=1.0.6
+ENV KUBE_VER=1.1.1
 ENV KUBE_URL=https://storage.googleapis.com/kubernetes-release/release/v${KUBE_VER}/bin/linux/amd64/kubectl
 RUN /bin/bash -l -c "wget ${KUBE_URL} \
                      -O /usr/local/bin/kubectl && \
