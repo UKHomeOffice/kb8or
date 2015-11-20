@@ -51,6 +51,7 @@ class Context
         env_vars = Context.resolve_env_file(file_name)
         @vars = @vars.merge(env_vars)
         @vars = @vars.merge(@overridden_vars)
+        @vars['env'] = env_name
         break
       end
     end

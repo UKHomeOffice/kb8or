@@ -1,5 +1,6 @@
 require_relative 'kb8_utils'
 require 'digest'
+require_relative 'file_secrets'
 
 class Kb8Resource
 
@@ -36,18 +37,22 @@ class Kb8Resource
     kb8_resource
   end
 
-  def self.create_from_name(full_name)
+  def self.resource_data_from_name(full_name)
     name_parts = full_name.split('/')
     unless name_parts.length == 2
       raise "Invalid Kubernetes resource name:'#{full_name}. Expecting kind/name format."
     end
     kind = name_parts[0][0..-2]
     name = name_parts[1]
-    kb8_resource_data = { 'metadata' => { 'name' => name }, 'kind' => kind }
+    { 'apiVersion' => Kb8Run::API_VERSION, 'metadata' => { 'name' => name }, 'kind' => kind }
+  end
+
+  def self.create_from_name(full_name)
+    kb8_resource_data = Kb8Resource.resource_data_from_name(full_name)
     Kb8Resource.new(kb8_resource_data, nil)
   end
 
-  def initialize(kb8_resource_data, file)
+  def initialize(kb8_resource_data, file=nil)
     @file = file
     @name = kb8_resource_data['metadata']['name'].to_s
     @kind = kb8_resource_data['kind'].to_s

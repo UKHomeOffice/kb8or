@@ -1,4 +1,6 @@
 require 'methadone'
+require_relative 'file_secrets'
+require_relative 'multi_template'
 
 class Kb8DeployUnit
 
@@ -18,9 +20,13 @@ class Kb8DeployUnit
     path = @context.resolve_vars([@context.settings.path])
     dir = File.join(@context.deployment_home, path.pop)
     @resources = {}
+    actual_dir = File.expand_path(dir)
+
+    if @context.settings.file_secrets
+      add_resource(FileSecrets.create_from_context(@context))
+    end
 
     # Load all kb8 files...
-    actual_dir = File.expand_path(dir)
     Dir["#{actual_dir}/*.yaml"].each do | file |
       debug "Loading kb8 file:'#{file}'..."
       kb8_data = @context.resolve_vars_in_file(file)
@@ -36,10 +42,7 @@ class Kb8DeployUnit
         new_items << Kb8Resource.get_resource_from_data(kb8_data, file, @context)
       end
       new_items.each do | kb8_resource |
-        unless @resources[kb8_resource.kind]
-          @resources[kb8_resource.kind] = []
-        end
-        @resources[kb8_resource.kind] << kb8_resource
+        add_resource(kb8_resource)
       end
     end
     debug "NoControllerOk:#{@context.settings.no_controller_ok}"
@@ -49,6 +52,13 @@ class Kb8DeployUnit
         exit 1
       end
     end
+  end
+
+  def add_resource(kb8_resource)
+    unless @resources[kb8_resource.kind]
+      @resources[kb8_resource.kind] = []
+    end
+    @resources[kb8_resource.kind] << kb8_resource
   end
 
   def create_or_update(resource)
