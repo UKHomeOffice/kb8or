@@ -53,6 +53,7 @@ class Context
         @vars = @vars.merge(@overridden_vars)
         break
       end
+      @vars['env'] = env_name
     end
     # Now finaly, update the settings now we know the environment!
     @settings = @settings.new(@vars) if @vars
