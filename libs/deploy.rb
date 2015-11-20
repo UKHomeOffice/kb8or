@@ -14,12 +14,9 @@ class Deploy
   include Methadone::Main
   include Methadone::CLILogging
 
-  def initialize(deploy_file,
-                 always_deploy=false,
-                 env_name=nil,
-                 overridden_params=nil,
-                 only_deploy=nil)
+  def initialize(deploy_file, options)
 
+    env_name=options[:env_name]
     @deploy_units = []
     deploy_home = File.dirname(deploy_file)
 
@@ -43,9 +40,9 @@ class Deploy
     @context = Context.new(settings,
                            container_version_finder,
                            deploy_home,
-                           always_deploy,
+                           options[:always_deploy],
                            env_name,
-                           overridden_params)
+                           options[:variables])
 
     # This call is crucial as it populates the environment the first time
     # NB The environment can be set as a default setting...
@@ -58,7 +55,7 @@ class Deploy
 
     # Load deployment information for each 'deploy' (kb8 directory) that exists
     deploy_data['Deploys'].each do | deploy_unit |
-      @deploy_units << Kb8DeployUnit.new(deploy_unit, @context, only_deploy)
+      @deploy_units << Kb8DeployUnit.new(deploy_unit, @context, options[:only_deploy], options[:no_diff])
     end
   end
 

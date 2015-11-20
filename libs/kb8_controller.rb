@@ -76,6 +76,7 @@ class Kb8Controller < Kb8Resource
       container.update(context)
       @container_specs << container
     end
+    update_md5
   end
 
   def can_roll_update?
