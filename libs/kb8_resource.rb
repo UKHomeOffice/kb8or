@@ -1,18 +1,22 @@
 require_relative 'kb8_utils'
+require 'digest'
 
 class Kb8Resource
+
+  include Methadone::Main
+  include Methadone::CLILogging
+
+  KB8_MD5_KEY = 'kb8_md5'
 
   attr_accessor :file,
                 :kind,
                 :kinds,
                 :live_data,
+                :md5,
                 :name,
                 :original_name,
                 :resources_of_kind,
                 :yaml_data
-
-  include Methadone::Main
-  include Methadone::CLILogging
 
   @@resource_cache = {}
 
@@ -51,6 +55,15 @@ class Kb8Resource
     @yaml_data = kb8_resource_data
     # This holds whilst we always use the file data...
     @original_name = @name.dup
+    update_md5
+  end
+
+  def update_md5
+    @md5 = Digest::MD5.hexdigest(YAML.dump(@yaml_data))
+    unless yaml_data['metadata']['labels']
+      yaml_data['metadata']['labels'] = {}
+    end
+    @yaml_data['metadata']['labels'][KB8_MD5_KEY] = @md5
   end
 
   def data(refresh=false)
@@ -83,6 +96,17 @@ class Kb8Resource
       end
     end
     false
+  end
+
+  def up_to_date?
+    # Check for the existence of the MD5 hash and compare...
+    if exist?
+      @live_data['metadata'].has_key?('labels') &&
+          @live_data['metadata']['labels'].has_key?(KB8_MD5_KEY) &&
+          @live_data['metadata']['labels'][KB8_MD5_KEY] == @md5
+    else
+      false
+    end
   end
 
   def create

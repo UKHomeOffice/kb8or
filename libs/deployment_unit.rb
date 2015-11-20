@@ -52,6 +52,10 @@ class Kb8DeployUnit
 
   def create_or_update(resource)
     if resource.exist?
+      if resource.up_to_date?
+        puts "No Change for #{resource.kinds}/#{resource.name}, Skipping."
+        return true
+      end
       puts "Updating #{resource.kinds}/#{resource.name}..."
       update_ok = true
       if resource.kinds == 'Services'

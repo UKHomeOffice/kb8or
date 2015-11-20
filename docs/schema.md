@@ -15,7 +15,7 @@
   3.8 [NoRollingUpdate](#norollingupdate)  
   3.9 [Path](#path)  
   3.10 [PrivateRegistry](#privateregistry)  
-  3.11 [RecreateServices](#recreateservices)  
+  3.11 [RecreateServices](#recreateservices)
 4. [Functions](#functions)
 
 ## Variables Parsing in Kubernetes Resources
@@ -306,18 +306,12 @@ PrivateRegistry: https://private-reg.notprod.com:50000
 
 ### RecreateServices
 
-#### Scope: Default.yaml, a_deployment.yaml, 'Path:' within a_deployment.yaml
+#### Scope: NA: To be deprecated
 
-Services are not normally updated after creation (as this would cause a service disruption). This behaviour can be
-overridden with this tag.
+No longer required as all resources are only updated if they have changed.
 
-#### Example
-
-```yaml
-Deploys:
-  - path: ../containers/fdcs
-    RecreateServices: true
-```
+~~Services are not normally updated after creation (as this would cause a service disruption). This behaviour can be
+overridden with this tag.~~
 
 ### UsePrivateRegistry
 
