@@ -2,20 +2,24 @@
 
 ### Contents
 
-1. [Variables](#variables)
-2. [Scope](#scope)
+1. [Variables](#variables)  
+2. [Scope](#scope)  
 3. [Settings](#settings)  
-  3.1 [ContainerVersionGlobPath](#containerversionglobpath)    
+  3.1 [ContainerVersionGlobPath](#containerversionglobpath)  
   3.2 [EnvFileGlobPath](#envfileglobpath)  
+  3.2 [FileSecrets](#filesecrets)  
   3.3 [DefaultEnvName](#defaultenvname)  
-  3.4 [Kb8Server](#kb8server)  
   3.5 [MultiTemplate](#multitemplate)  
   3.6 [NoAutomaticUpgrade](#noautomaticupgrade)  
   3.7 [NoControllerOk](#nocontrollerok)  
   3.8 [NoRollingUpdate](#norollingupdate)  
   3.9 [Path](#path)  
   3.10 [PrivateRegistry](#privateregistry)  
-4. [Functions](#functions)
+4. [Functions](#functions)  
+  4.1 [Fn::FileData](#fnfiledata)  
+  4.2 [Fn::FileIncludePaths](#fnfileincludepaths)  
+  4.2 [Fn::OptionalHashItem](#fnoptionalhashitem)  
+
 
 ## Variables Parsing in Kubernetes Resources
 
@@ -111,9 +115,28 @@ This example here will load the variables from the file ./environments/vagrant.y
 DefaultEnvName: vagrant
 ```
 
+### FileSecrets
+
+#### Scope: Environment file
+
+Can read a set of files to create a Kubernetes secret resource.
+
+#### Example
+
+The example below will create or update a Kubernetes secret resource with the name `frontend-secrets` before deploying
+any other resources found withing the `./kb8resources/myapp_frontend` directory. The secret resource will be created from all the files in the directory `../secrets/${env}/myapp_frontend_secrets`. It will use the file name for each secret data key and base64 encode file contents for the values.
+
+```yaml
+Deploys:
+  - Path: ./kb8resources/myapp_frontend
+    FileSecrets:
+      name: frontend-secrets
+      path: ../secrets/${env}/myapp_frontend_secrets
+```
+
 ### Kb8context
 
-#### Scope 
+#### Scope: Environment file
 
 Will be used to set the context for a deployment.
 
@@ -130,22 +153,6 @@ Kb8Context:
   cluster: prod_cluster
   user: prod_user
   namespace: prod
-```
-
-### Kb8Server - deprecate, see (Kb8Context)[#kb8context]
-
-#### Scope: Default.yaml, environment.yaml
-
-Details which Kubernetes server should be used to deploy to.
-
-#### Example
-
-The example below will create a ./kube/config entry for the server with the environment name which will then be used for 
-deployments. The server entry can be created in advance and augmented with other parameters where required. See 
-[kubectl config set-cluster](https://cloud.google.com/container-engine/docs/kubectl/config-set-cluster).
-
-```yaml
-Kb8Server: https://10.101.0.1:443
 ```
 
 ### MultiTemplate
@@ -324,9 +331,51 @@ Deploys:
 
 Functions can be used to pull in other content or transform the yaml before replacing it.
  
+### Fn::FileData
+
+#### Scope: Environment file
+
+This allows variables to be bought in from files and from concatenated files. It also allows for optionally base64
+encoding the content of files (useful for creating secrets data).
+
+#### Example
+
+The example below will create three variables, srrs_proxy_crt and srrs_proxy_key and app_pre_shared_key. The variable
+ srrs_proxy_crt is formed from concatenating two files and by base64 encoding the resultant data. The variable
+ app_pre_shared_key is simply formed from the file contents of the file app.key.
+
+```yaml
+Fn::FileData:
+  - name: srrs_proxy_crt
+    encode: base64
+    files:
+    - ../secrets/shared/wildcard.notprod.homeoffice.gov.uk/wildcard.notprod.homeoffice.gov.uk.crt
+    - ../secrets/shared/wildcard.notprod.homeoffice.gov.uk/GlobalSign.crt
+  - name: srrs_proxy_key
+    encode: base64
+    files:
+    - ../secrets/shared/wildcard.notprod.homeoffice.gov.uk/wildcard.notprod.homeoffice.gov.uk.key
+  - name: app_pre_shared_key
+    files:
+    - ../secrets/acceptance/app.key
+```
+
+The variables above would simply be consumed in the relevant resource file e.g.:
+
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "srrs-tls"
+type: "Opaque"
+data:
+  ssl_key: ${srrs_proxy_key}
+  ssl_crt: ${srrs_proxy_crt}
+```
+
 ### Fn::FileIncludePaths
 
-#### Scope Environment file, a_kubernets_resource.yaml
+#### Scope: Environment file, a deployment file.
 
 This can be used to include other files within an environment or deployment file.
 
@@ -341,7 +390,7 @@ FileIncludePaths:
 
 ### Fn::OptionalHashItem
 
-#### Scope Environment file, a_Kubernetes_resource.yaml
+#### Scope: Environment file, a_Kubernetes_resource.yaml
 
 This allows an item to be replaced in the Yaml document at this point with either a new key, value pair or removed if 
 nil.

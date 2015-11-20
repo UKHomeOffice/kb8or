@@ -13,6 +13,7 @@ class Settings
                 :defaults_set,
                 :delete_items,
                 :env_file_glob_path,
+                :file_secrets,
                 :kb8_context,
                 :kb8_server,
                 :multi_template,
@@ -43,7 +44,7 @@ class Settings
     @values_by_original_names = {}
     defaults_file = File.join(deploy_home, FILE_DEFAULTS)
     if File.exist?(defaults_file)
-      debug "Loading settings"
+      debug 'Loading settings'
       @defaults = Kb8Utils.load_yaml(File.open(defaults_file))
     end
   end
