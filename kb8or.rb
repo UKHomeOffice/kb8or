@@ -28,11 +28,7 @@ class Kb8or
       exit 1
     end
 
-    deploy = Deploy.new(deploy_file,
-                        options[:always_deploy],
-                        options[:env_name],
-                        options[:variables],
-                        options[:only_deploy])
+    deploy = Deploy.new(deploy_file, options)
 
     begin
       puts KB8_BANNER % VERSION_STRING
@@ -63,6 +59,10 @@ class Kb8or
 
   opts.on('-a','--always-deploy','Ignore NoAutomaticUpgrade deployment setting') do
     options[:always_deploy] = true
+  end
+
+  opts.on('-f', '--no-diff', 'Do not diff resources (i.e. update identical resources') do
+    options[:no_diff] = true
   end
 
   opts.on('-e ENVIRONMENT','--environment','Specify the environment') do |env_name|

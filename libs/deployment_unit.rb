@@ -9,7 +9,8 @@ class Kb8DeployUnit
   include Methadone::Main
   include Methadone::CLILogging
 
-  def initialize(data, context, only_deploy=nil)
+  def initialize(data, context, only_deploy=nil, no_diff=false)
+    @no_diff = no_diff
     @only_deploy = only_deploy
     debug 'Loading new context'
     @context = context.new(data)
@@ -52,15 +53,14 @@ class Kb8DeployUnit
 
   def create_or_update(resource)
     if resource.exist?
-      puts "Updating #{resource.kinds}/#{resource.name}..."
-      update_ok = true
-      if resource.kinds == 'Services'
-        unless context.settings.recreate_services
-          update_ok = false
-          puts '...Not re-creating service, Use setting RecreateServices to override.'
+      unless @no_diff
+        if resource.up_to_date?
+          puts "No Change for #{resource.kinds}/#{resource.name}, Skipping."
+          return true
         end
       end
-      resource.update if update_ok
+      puts "Updating #{resource.kinds}/#{resource.name}..."
+      resource.update
       puts '...done.'
     else
       puts "Creating #{resource.kinds}/#{resource.name}..."
