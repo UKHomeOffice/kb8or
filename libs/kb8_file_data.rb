@@ -50,7 +50,7 @@ class Kb8FileData
       data << file_data
     end
     if @base64_encode
-      data = Base64.encode64(data)
+      data = Base64.strict_encode64(data)
     end
     data
   end

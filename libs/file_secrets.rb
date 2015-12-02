@@ -13,7 +13,7 @@ class FileSecrets
                   :base64_data
 
     def initialize(file)
-      @base64_data = Base64.encode64(Kb8Utils.load(file))
+      @base64_data = Base64.strict_encode64(Kb8Utils.load(file))
       @name = File.basename(file)
     end
   end
