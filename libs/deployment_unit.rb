@@ -6,7 +6,8 @@ class Kb8DeployUnit
 
   attr_accessor :context,
                 :only_deploy,
-                :resources
+                :resources,
+                :changed_resources
 
   include Methadone::Main
   include Methadone::CLILogging
@@ -21,6 +22,7 @@ class Kb8DeployUnit
     dir = File.join(@context.deployment_home, path.pop)
     @resources = {}
     actual_dir = File.expand_path(dir)
+    @changed_resources = []
 
     if @context.settings.file_secrets
       add_resource(FileSecrets.create_from_context(@context))
@@ -71,10 +73,12 @@ class Kb8DeployUnit
       end
       puts "Updating #{resource.kinds}/#{resource.name}..."
       resource.update
+      @changed_resources << resource
       puts '...done.'
     else
       puts "Creating #{resource.kinds}/#{resource.name}..."
       resource.create
+      @changed_resources << resource
       puts '...done.'
     end
   end
@@ -113,12 +117,25 @@ class Kb8DeployUnit
       end
     end
     deploy_items.each do | item |
+      # test if we have a deployment filter
       deploy = (@only_deploy.nil? || @only_deploy.to_a.include?(item.original_full_name))
+      # test if any secrets have changed
+      deploy = deploy && resource_uses_changed_secret?(item)
       if deploy
         create_or_update(item)
       else
         puts "Skipping resource (-d):#{item.original_full_name}"
       end
     end
+  end
+
+  def resource_uses_changed_secret?(resource)
+    changed_secrets = []
+    @changed_resources.each do |resource|
+      if resource.kind == 'Secret'
+        changed_secrets << resource.name
+      end
+    end
+    resource.uses_any_secret?(changed_secrets)
   end
 end

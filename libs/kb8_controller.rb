@@ -18,7 +18,8 @@ class Kb8Controller < Kb8Resource
                 :pods,
                 :intended_replicas,
                 :actual_replicas,
-                :new_deploy_id
+                :new_deploy_id,
+                :volumes
 
   class Selectors
     attr_accessor :selectors_hash
@@ -75,6 +76,11 @@ class Kb8Controller < Kb8Resource
       container = Kb8ContainerSpec.new(item)
       container.update(context)
       @container_specs << container
+    end
+    if yaml_data['spec']['template']['spec'].has_key?('volumes')
+      @volumes = Kb8Volumes.new(yaml_data['spec']['template']['spec']['volumes'])
+    else
+      @volumes = []
     end
     update_md5
   end
@@ -225,7 +231,7 @@ class Kb8Controller < Kb8Resource
       end
     end
     unless failed_pods.count < 1
-      # TODO: add some diagnostics e.g. logs and which failed...
+      mark_dirty
       failed_pods.each do | pod |
         pod.report_on_pod_failure
       end
