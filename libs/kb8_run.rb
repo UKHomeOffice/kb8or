@@ -22,6 +22,7 @@ class Kb8Run
   CMD_GET_EVENTS = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get events -o yaml"
   CMD_GET_RESOURCE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get %s -o yaml"
   CMD_DELETE_PODS = "#{CMD_KUBECTL} delete pods -l %s"
+  CMD_PATCH_RESOURCE = "#{CMD_KUBECTL} patch %s %s -p '%s'"
   CMD_CONFIG_CLUSTER = "#{CMD_KUBECTL} config set-cluster %s --server=%s"
   CMD_CONFIG_CONTEXT_SERVER = "#{CMD_KUBECTL} config set-context #{LEGACY_CONTEXT_NAME} --cluster=%s --namespace=%s"
   CMD_CONFIG_CONTEXT = "#{CMD_KUBECTL} config set-context %s --cluster=%s --namespace=%s %s"
@@ -170,6 +171,13 @@ class Kb8Run
     debug "Rolling update with:'#{yaml_data.to_s}'"
     cmd = CMD_ROLLING_UPDATE % old_controller
     Kb8Run.run(cmd, true, true, yaml_data.to_s, false)
+  end
+
+  def self.patch(patch_data, type, resource)
+    patch_string = patch_data.to_json()
+    debug "Patching #{patch_string}"
+    cmd = CMD_PATCH_RESOURCE % [type, resource, patch_string]
+    Kb8Run.run(cmd, false, true)
   end
 
   def self.delete_pods(selector_string)
