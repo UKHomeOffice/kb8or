@@ -8,6 +8,8 @@ class Kb8Resource
   include Methadone::CLILogging
 
   KB8_MD5_KEY = 'kb8_md5'
+  RESOURCE_POD = 'Pod'
+  RESOURCE_RC = 'ReplicationController'
 
   attr_accessor :file,
                 :kind,
@@ -27,9 +29,9 @@ class Kb8Resource
 
   def self.get_resource_from_data(kb8_data, file, context = nil)
     case kb8_data['kind']
-      when 'ReplicationController'
+      when RESOURCE_RC
         kb8_resource = Kb8Controller.new(kb8_data, file, context)
-      when 'Pod'
+      when RESOURCE_POD
         kb8_resource = Kb8Pod.new(kb8_data, nil, file, context)
       else
         kb8_resource = Kb8Resource.new(kb8_data, file)
@@ -65,10 +67,16 @@ class Kb8Resource
 
   def update_md5
     @md5 = Digest::MD5.hexdigest(YAML.dump(@yaml_data))
-    unless yaml_data['metadata']['labels']
-      yaml_data['metadata']['labels'] = {}
+    unless @yaml_data['metadata']['labels']
+      @yaml_data['metadata']['labels'] = {}
     end
     @yaml_data['metadata']['labels'][KB8_MD5_KEY] = @md5
+  end
+
+  def mark_dirty
+    # We'll ensure this resource will get replaced at next deploy...
+    patch = { 'metadata' => {'labels' => { KB8_MD5_KEY => ''}}}
+    Kb8Run.patch(patch, @kind, @name)
   end
 
   def data(refresh=false)
@@ -112,6 +120,20 @@ class Kb8Resource
     else
       false
     end
+  end
+
+  def uses_any_secret?(secrets)
+    secrets.each do |secret|
+      return true if uses_secret?(secret)
+    end
+    false
+  end
+
+  def uses_secret?(secret_name)
+    if @volumes
+      return @volumes.uses_secret?(secret_name)
+    end
+    false
   end
 
   def create

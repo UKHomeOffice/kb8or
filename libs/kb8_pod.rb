@@ -32,7 +32,8 @@ class Kb8Pod < Kb8Resource
               :error_message,
               :failing_containers,
               :pod_data,
-              :restart_never
+              :restart_never,
+              :volumes
 
   def initialize(pod_data, rc=nil, file=nil, context=nil)
     debug "setting pod_data=#{pod_data}"
@@ -49,6 +50,11 @@ class Kb8Pod < Kb8Resource
     @restart_never = false
     @restart_never = @pod_data['spec']['restartPolicy'] == 'Never'
     @failing_containers = []
+    if @pod_data['spec'].has_key?('volumes')
+      @volumes = Kb8Volumes.new(@pod_data['spec']['volumes'])
+    else
+      @volumes = []
+    end
 
     # Initialize the base kb8 resource
     super(pod_data, file)
@@ -249,14 +255,14 @@ class Kb8Pod < Kb8Resource
     if current_condition == Kb8Pod::CONDITION_READY
       debug "All good for #{@name}"
     else
+      mark_dirty
       report_on_pod_failure
       exit 1
     end
   end
 
   def report_on_pod_failure
-    # TODO: add some diagnostics e.g. logs and which failed...
-    puts "Error, failing pods..."
+    puts 'Error, failing pods...'
     puts "Error messages for pod:#{@name}"
     puts @error_message
     debug "Err Status:#{@last_condition.to_s}"
