@@ -31,8 +31,8 @@ class Kb8DeployUnit
     # Load all kb8 files...
     Dir["#{actual_dir}/*.yaml"].each do | file |
       debug "Loading kb8 file:'#{file}'..."
-      new_items = nil
       Kb8Utils.load_multi_yaml(file).each do |data|
+        new_items = nil
 
         kb8_data = @context.resolve_vars(data)
         debug "kb8 data:#{kb8_data}"
