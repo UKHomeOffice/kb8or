@@ -16,9 +16,9 @@ kubectl create -f namespaces/dev-namespace.yaml
 
 ## Step 2 - create a defaults.yaml
 This file should contain:
-ContainerVersionGlobPath - Gives the path to your version files. It uses a wildcard for the deployment name. The file itself should contain the docker image version to be deployed.
-DefaultEnvName - The default environment to deploy to if no environment is specified
-EnvFileGlobPath - This uses a wildcard for the environment name. The file itself contains any config specific to the environment being used
+- *ContainerVersionGlobPath* - Gives the path to your version files. It uses a wildcard for the deployment name. The file itself should contain the docker image version to be deployed.
+- *DefaultEnvName* - The default environment to deploy to if no environment is specified
+- *EnvFileGlobPath* - This uses a wildcard for the environment name. The file itself contains any config specific to the environment being used
 
 ## Step 3 - create your version file
 This file is referred to in defaults.yaml and you can see an example in versions/digital-storage_container_version
