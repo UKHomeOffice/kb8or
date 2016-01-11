@@ -31,20 +31,23 @@ class Kb8DeployUnit
     # Load all kb8 files...
     Dir["#{actual_dir}/*.yaml"].each do | file |
       debug "Loading kb8 file:'#{file}'..."
-      kb8_data = @context.resolve_vars_in_file(file)
-      debug "kb8 data:#{kb8_data}"
-
       new_items = nil
-      if @context.settings.multi_template
-        multi_template = MultiTemplate.new(kb8_data, @context, file, dir)
-        new_items = multi_template.items if multi_template.valid_data?
-      end
-      unless new_items
-        new_items = []
-        new_items << Kb8Resource.get_resource_from_data(kb8_data, file, @context)
-      end
-      new_items.each do | kb8_resource |
-        add_resource(kb8_resource)
+      Kb8Utils.load_multi_yaml(file).each do |data|
+
+        kb8_data = @context.resolve_vars(data)
+        debug "kb8 data:#{kb8_data}"
+
+        if @context.settings.multi_template
+          multi_template = MultiTemplate.new(kb8_data, @context, file, dir)
+          new_items = multi_template.items if multi_template.valid_data?
+        end
+        unless new_items
+          new_items = []
+          new_items << Kb8Resource.get_resource_from_data(kb8_data, file, @context)
+        end
+        new_items.each do | kb8_resource |
+          add_resource(kb8_resource)
+        end
       end
     end
     debug "NoControllerOk:#{@context.settings.no_controller_ok}"

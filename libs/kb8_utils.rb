@@ -13,6 +13,16 @@ class Kb8Utils
     data
   end
 
+  def self.load_multi_yaml(file_path)
+    begin
+      file_data = load(file_path)
+      data = YAML.load_stream(file_data)
+    rescue Exception
+      raise $!, "Error parsing YAML file: #{file_path}: #{$!}", $!.backtrace
+    end
+    data
+  end
+
   def self.load(file_path)
     begin
       data = File.read(file_path)
