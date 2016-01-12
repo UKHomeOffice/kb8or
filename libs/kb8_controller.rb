@@ -162,11 +162,13 @@ class Kb8Controller < Kb8Resource
         unless item['metadata'].nil?
           unless item['metadata']['labels'].nil?
             if item['metadata']['labels'][ORIGINAL_NAME] == @original_name
-              @live_data = item
-              @name = @live_data['metadata']['name']
-              update_deployment_data
-              return true
-              break
+              if namespace_match?
+                @live_data = item
+                @name = @live_data['metadata']['name']
+                update_deployment_data
+                return true
+                break
+              end
             end
           end
         end
