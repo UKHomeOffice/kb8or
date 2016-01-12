@@ -12,15 +12,16 @@ class Kb8Run
   API_VERSION = 'v1'
   MISSING_DATA_RETRIES = 3
   LEGACY_CONTEXT_NAME = 'kb8or-context'
+  NAMESPACE_FLAG='--namespace=%s'
   CMD_KUBECTL = 'kubectl'
   CMD_ROLLING_UPDATE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" rolling-update %s -f -"
   CMD_CREATE = "#{CMD_KUBECTL} create -f -"
   CMD_REPLACE = "#{CMD_KUBECTL} replace -f -"
-  CMD_DELETE = "#{CMD_KUBECTL} delete %s/%s"
+  CMD_DELETE = "#{CMD_KUBECTL} delete %s/%s %s"
   CMD_GET_POD_LOGS = "#{CMD_KUBECTL} logs %s %s"
   CMD_GET_POD = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get pods -l %s -o yaml"
   CMD_GET_EVENTS = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get events -o yaml"
-  CMD_GET_RESOURCE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get %s -o yaml"
+  CMD_GET_RESOURCE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get %s -o yaml --all-namespaces=%s"
   CMD_DELETE_PODS = "#{CMD_KUBECTL} delete pods -l %s"
   CMD_PATCH_RESOURCE = "#{CMD_KUBECTL} patch %s %s -p '%s'"
   CMD_CONFIG_CLUSTER = "#{CMD_KUBECTL} config set-cluster %s --server=%s"
@@ -186,15 +187,19 @@ class Kb8Run
     Kb8Run.run(cmd, false, true)
   end
 
-  def self.delete_resource(type, name)
+  def self.delete_resource(type, name, namespace=nil)
     debug "Deleting resource:#{type}/#{name}"
-    cmd = CMD_DELETE % [type, name]
+    namespace_flag = ''
+    if namespace
+      namespace_flag = NAMESPACE_FLAG % [namespace]
+    end
+    cmd = CMD_DELETE % [type, name, namespace_flag]
     Kb8Run.run(cmd, false, true)
   end
 
-  def self.get_resource_data(type)
+  def self.get_resource_data(type, all_namespaces=false)
     debug "Getting resource data:#{type}"
-    cmd = CMD_GET_RESOURCE % type
+    cmd = CMD_GET_RESOURCE % [type, all_namespaces.to_s]
     yaml_data = Kb8Run.get_yaml_data(cmd)
     yaml_data
   end

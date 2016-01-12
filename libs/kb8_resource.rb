@@ -17,15 +17,10 @@ class Kb8Resource
                 :live_data,
                 :md5,
                 :name,
+                :namespace,
                 :original_name,
                 :resources_of_kind,
                 :yaml_data
-
-  @@resource_cache = {}
-
-  def self.get_deployed_resources(kinds)
-    @@resource_cache[@kinds] = Kb8Run.get_resource_data(kinds)
-  end
 
   def self.get_resource_from_data(kb8_data, file, context = nil)
     case kb8_data['kind']
@@ -55,14 +50,22 @@ class Kb8Resource
   end
 
   def initialize(kb8_resource_data, file=nil)
+    @resource_cache = {}
     @file = file
     @name = kb8_resource_data['metadata']['name'].to_s
     @kind = kb8_resource_data['kind'].to_s
+    if kb8_resource_data['metadata']['namespace']
+      @namespace =  kb8_resource_data['metadata']['namespace']
+    end
     @kinds = @kind + 's'
     @yaml_data = kb8_resource_data
     # This holds whilst we always use the file data...
     @original_name = @name.dup
     update_md5
+  end
+
+  def get_deployed_resources(kinds, all_namespaces=false)
+    @resource_cache[@kinds] = Kb8Run.get_resource_data(kinds, all_namespaces)
   end
 
   def update_md5
@@ -88,25 +91,46 @@ class Kb8Resource
     end
   end
 
+  def namespace_defined?
+    if @namespace
+      true
+    else
+      false
+    end
+  end
+
   def exist?(refresh=false)
 
     # Check the cache if required
-    unless @@resource_cache.has_key?(@kinds)
+    unless @resource_cache.has_key?(@kinds)
       refresh = true
     end
     if refresh
-      @resources_of_kind = Kb8Resource.get_deployed_resources(@kinds)
+      @resources_of_kind = get_deployed_resources(@kinds, namespace_defined?)
     else
-      @resources_of_kind = @@resource_cache[@kinds]
+      @resources_of_kind = @resource_cache[@kinds]
     end
 
     # Check if the item exists
     @resources_of_kind['items'].each do |item|
       if item['metadata'] && item['metadata'].has_key?('name') && item['metadata']['name'] == @name
-        @live_data = item
-        return true
-        break
+        if namespace_match?(item)
+          @live_data = item
+          return true
+          break
+        end
       end
+    end
+    false
+  end
+
+  def namespace_match?(item)
+    if @namespace
+      if item['metadata'] && item['metadata'].has_key?('namespace') && item['metadata']['namespace'] == @namespace
+        return true
+      end
+    else
+      return true
     end
     false
   end
@@ -143,7 +167,7 @@ class Kb8Resource
   end
 
   def delete
-    Kb8Run.delete_resource(@kind, @name)
+    Kb8Run.delete_resource(@kind, @name, @namespace)
   end
 
   def replace
@@ -153,7 +177,7 @@ class Kb8Resource
 
   def update
     case @kind
-      when 'Secret','ServiceAccount'
+      when 'Secret','ServiceAccount','Namespace','LimitRange'
         replace
       else
         # TODO: add error handling to use appropriate update type...
