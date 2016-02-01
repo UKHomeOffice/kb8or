@@ -118,7 +118,7 @@ class Kb8Pod < Kb8Resource
 
   def is_event_reason_relevant(reason)
     EVENT_REASONS.each do |event_reason|
-      if reason.start_with?(event_reason)
+      if reason.start_with?(event_reason.downcase)
         return true
       end
     end
@@ -182,6 +182,7 @@ class Kb8Pod < Kb8Resource
             condition_value = Kb8Pod::CONDITION_RESTARTING
           end
           if container_status['restartCount'] > 0
+            show_container_logs(container_status['name'])
             puts "...Detected restarting container:'#{container_status['name']}'. Backing off to check again in #{RETRY_BACKOFF_SECONDS}"
             sleep RETRY_BACKOFF_SECONDS
           end
@@ -255,10 +256,19 @@ class Kb8Pod < Kb8Resource
     if current_condition == Kb8Pod::CONDITION_READY
       debug "All good for #{@name}"
     else
+      puts ''
       mark_dirty
       report_on_pod_failure
       exit 1
     end
+  end
+
+  def show_container_logs(container_name)
+    puts "Failing pod logs below for pod:'#{@name}', container:#{container_name}"
+    puts '=============================='
+    puts Kb8Run.get_pod_logs(@name, container_name)
+    puts '=============================='
+    puts "Failing pod logs above for pod:'#{@name}', container:#{container_name}"
   end
 
   def report_on_pod_failure
@@ -268,11 +278,7 @@ class Kb8Pod < Kb8Resource
     debug "Err Status:#{@last_condition.to_s}"
     unless @last_condition == Kb8Pod::CONDITION_ERR_WAIT
       @failing_containers.each do |container_name|
-        puts "Failing pod logs below for pod:'#{@name}', container:#{container_name}"
-        puts '=============================='
-        puts Kb8Run.get_pod_logs(@name, container_name)
-        puts '=============================='
-        puts "Failing pod logs above for pod:'#{@name}', container:#{container_name}"
+        show_container_logs(container_name)
       end
     end
   end
