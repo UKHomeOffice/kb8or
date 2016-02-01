@@ -178,7 +178,7 @@ class Kb8Run
     patch_string = patch_data.to_json()
     debug "Patching #{patch_string}"
     cmd = CMD_PATCH_RESOURCE % [type, resource, patch_string]
-    Kb8Run.run(cmd, false, true)
+    Kb8Run.run(cmd, false, false)
   end
 
   def self.delete_pods(selector_string)

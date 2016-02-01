@@ -79,7 +79,10 @@ class Kb8Resource
   def mark_dirty
     # We'll ensure this resource will get replaced at next deploy...
     patch = { 'metadata' => {'labels' => { KB8_MD5_KEY => ''}}}
-    Kb8Run.patch(patch, @kind, @name)
+    begin
+      Kb8Run.patch(patch, @kind, @name)
+    rescue
+    end
   end
 
   def data(refresh=false)
