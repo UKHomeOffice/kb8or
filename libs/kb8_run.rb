@@ -21,9 +21,10 @@ class Kb8Run
   CMD_GET_POD_LOGS = "#{CMD_KUBECTL} logs %s %s"
   CMD_GET_POD = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get pods -l %s -o yaml"
   CMD_GET_EVENTS = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get events -o yaml"
-  CMD_GET_RESOURCE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get %s -o yaml --all-namespaces=%s"
+  CMD_GET_RESOURCE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get %s -o yaml %s"
   CMD_DELETE_PODS = "#{CMD_KUBECTL} delete pods -l %s"
   CMD_PATCH_RESOURCE = "#{CMD_KUBECTL} patch %s %s -p '%s'"
+  CMD_LABEL_RESOURCE = "#{CMD_KUBECTL} label %ss %s %s"
   CMD_CONFIG_CLUSTER = "#{CMD_KUBECTL} config set-cluster %s --server=%s"
   CMD_CONFIG_CONTEXT_SERVER = "#{CMD_KUBECTL} config set-context #{LEGACY_CONTEXT_NAME} --cluster=%s --namespace=%s"
   CMD_CONFIG_CONTEXT = "#{CMD_KUBECTL} config set-context %s --cluster=%s --namespace=%s %s"
@@ -181,6 +182,12 @@ class Kb8Run
     Kb8Run.run(cmd, false, false)
   end
 
+  def self.delete_label(label, type, resource)
+    debug "Deleting label #{label} from #{type}/#{resource}"
+    cmd = CMD_LABEL_RESOURCE % [type, resource, "#{label}-"]
+    Kb8Run.run(cmd, false, false)
+  end
+
   def self.delete_pods(selector_string)
     debug "Deleting pods matching selectors:#{selector_string}"
     cmd = CMD_DELETE_PODS % [selector_string]
@@ -197,9 +204,17 @@ class Kb8Run
     Kb8Run.run(cmd, false, true)
   end
 
-  def self.get_resource_data(type, all_namespaces=false)
+  def self.get_resource_data(type, all_namespaces=false, namespace=nil)
     debug "Getting resource data:#{type}"
-    cmd = CMD_GET_RESOURCE % [type, all_namespaces.to_s]
+    if all_namespaces
+      cmd = CMD_GET_RESOURCE % [type, ' --all-namespaces=true ']
+    else
+      if namespace
+        cmd = CMD_GET_RESOURCE % [type, " --namespace=#{namespace}"]
+      else
+        cmd = CMD_GET_RESOURCE % [type, '']
+      end
+    end
     yaml_data = Kb8Run.get_yaml_data(cmd)
     yaml_data
   end
@@ -240,7 +255,6 @@ class Kb8Run
         next
       else
         event_name = event['involvedObject']['name'].to_s
-        debug "Event data:#{event.to_json}"
         if event_name == pod_name.to_s
           relevant_events << event unless event['lastTimestamp'].nil?
         end

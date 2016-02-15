@@ -118,7 +118,7 @@ class Kb8Pod < Kb8Resource
 
   def is_event_reason_relevant(reason)
     EVENT_REASONS.each do |event_reason|
-      if reason.start_with?(event_reason.downcase)
+      if reason.downcase.start_with?(event_reason.downcase)
         return true
       end
     end
@@ -172,8 +172,15 @@ class Kb8Pod < Kb8Resource
         #     waiting:
         #       reason: 'Error: image lev_ords_waf:0.5 not found'
         debug "Digging into container status #{container_status.to_json}"
-        unless container_status['state'].nil?
+        if container_status['state'].nil?
           condition_value = update_from_events(condition_value, container_status)
+        else
+          if container_status['state'].has_key?('waiting') &&
+              container_status['state']['waiting']['reason'].downcase == 'pullimageerror'
+            update_error(container_status['state']['waiting']['message'])
+            condition_value = Kb8Pod::CONDITION_ERR_WAIT
+            update_failing_containers(container_status)
+          end
         end
         if container_status['restartCount']
           if container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
