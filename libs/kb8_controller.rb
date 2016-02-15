@@ -50,7 +50,6 @@ class Kb8Controller < Kb8Resource
     # Initialize the base kb8 resource
     super(yaml_data, file)
 
-    @pods = []
     @container_specs = []
     @no_rolling_updates = context.settings.no_rolling_update
     @context = context
@@ -64,6 +63,7 @@ class Kb8Controller < Kb8Resource
     end
     @selectors = Selectors.new(yaml_data['spec']['selector'])
     @intended_replicas = yaml_data['spec']['replicas']
+    @pods = []
 
     # Now get the containers and set versions and private registry where applicable
     containers = []
@@ -99,8 +99,9 @@ class Kb8Controller < Kb8Resource
   def deploy_id
     unless @new_deploy_id
       deploy_id = '0'
-      if @live_data['metadata']['labels'].has_key?(DEPLOYMENT_LABEL)
-        deploy_id = @live_data['metadata']['labels'][DEPLOYMENT_LABEL]
+      if data && data['metadata'] && data['metadata']['labels'] &&
+          data['metadata']['labels'].has_key?(DEPLOYMENT_LABEL)
+        deploy_id = data['metadata']['labels'][DEPLOYMENT_LABEL]
       end
       # Grab the first digits...
       id = deploy_id.match(/[\d]+/).to_a.first
@@ -115,14 +116,15 @@ class Kb8Controller < Kb8Resource
 
   def update_deployment_data
     # Add new deployment id and name etc...
-    yaml_data['metadata']['name'] = "#{@original_name}-#{deploy_id}"
-    unless yaml_data['metadata']['labels']
-      yaml_data['metadata']['labels'] = {}
+    @name = "#{@original_name}-#{deploy_id}"
+    @yaml_data['metadata']['name'] = @name
+    unless @yaml_data['metadata']['labels']
+      @yaml_data['metadata']['labels'] = {}
     end
-    yaml_data['metadata']['labels'][ORIGINAL_NAME] = @original_name
-    yaml_data['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
-    yaml_data['spec']['selector'][DEPLOYMENT_LABEL] = deploy_id
-    yaml_data['spec']['template']['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
+    @yaml_data['metadata']['labels'][ORIGINAL_NAME] = @original_name
+    @yaml_data['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
+    @yaml_data['spec']['selector'][DEPLOYMENT_LABEL] = deploy_id
+    @yaml_data['spec']['template']['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
   end
 
   def refresh_status(refresh=false)
@@ -142,7 +144,8 @@ class Kb8Controller < Kb8Resource
       delete
       create
     else
-      yaml_string = YAML.dump(yaml_data)
+      update_deployment_data
+      yaml_string = YAML.dump(@yaml_data)
       begin
         Kb8Run.rolling_update(yaml_string, @live_data['metadata']['name'])
         @name = yaml_data['metadata']['name']
@@ -152,34 +155,44 @@ class Kb8Controller < Kb8Resource
     end
   end
 
-  def exist?
-    if super
-      update_deployment_data
-      true
+  def delete
+    super
+    debug 'Waiting for delete to succeed...'
+    # Wait for all pods to go...
+    @pods.each do |pod|
+      while pod.exist?(true) do
+        sleep(1)
+      end
+    end
+  end
+
+  def exist?(refresh=false)
+    exists = false
+    if super(refresh)
+      exists = true
     else
       @resources_of_kind['items'].each do |item|
-      if item
-        unless item['metadata'].nil?
-          unless item['metadata']['labels'].nil?
-            if item['metadata']['labels'][ORIGINAL_NAME] == @original_name
-              if namespace_match?(item)
-                @live_data = item
-                @name = @live_data['metadata']['name']
-                update_deployment_data
-                return true
-                break
+        if item
+          unless item['metadata'].nil?
+            unless item['metadata']['labels'].nil?
+              if item['metadata']['labels'][ORIGINAL_NAME] == @original_name
+                if namespace_match?(item)
+                  @live_data = item
+                  @name = @live_data['metadata']['name']
+                  exists = true
+                end
               end
             end
           end
         end
       end
     end
-      false
-    end
+    exists
   end
 
   def create
     # Ensure the controller resource is created using the parent class...
+    update_deployment_data
     super
     check_status
   end
@@ -210,6 +223,7 @@ class Kb8Controller < Kb8Resource
       @pods.each do | pod |
         puts "Pod:#{pod.name}, status:#{pod.error_message}" if pod.error_message
       end
+      mark_dirty
       exit 1
     end
 
@@ -241,6 +255,24 @@ class Kb8Controller < Kb8Resource
     end
   end
 
+  def mark_dirty
+    @pods.each do |pod|
+      pod.mark_dirty
+    end
+  end
+
+  def is_dirty?
+    if exist?
+      get_pod_data(true)
+      @pods.each do |pod|
+        if pod.is_dirty?
+          return true
+        end
+      end
+    end
+    false
+  end
+
   def get_pod_data(refresh=true)
     refresh_status(refresh)
 
@@ -252,16 +284,11 @@ class Kb8Controller < Kb8Resource
       debug "Intended pods running:#{@intended_replicas}"
 
       @pods = []
-      if @actual_replicas == @intended_replicas
-        debug 'All replicas loaded...'
-        @pod_status_data['items'].each do | pod |
-          @pods << Kb8Pod.new(pod, self)
-        end
-        debug 'All pods loaded...'
-      else
-        debug 'Invalid number of replicas - need we wait?'
+      @pod_status_data['items'].each do | pod |
+        @pods << Kb8Pod.new(pod, self)
       end
     end
+    @pods
   end
 
   # Will get the controller status or the last requested controller status

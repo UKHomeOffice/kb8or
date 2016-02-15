@@ -12,12 +12,16 @@ class Kb8DeployUnit
   include Methadone::Main
   include Methadone::CLILogging
 
-  def initialize(data, context, only_deploy=nil, no_diff=false)
+  def initialize(data, context, deploy_file, only_deploy=nil, no_diff=false)
     @no_diff = no_diff
     @only_deploy = only_deploy
     debug 'Loading new context'
     @context = context.new(data)
     debug 'Got new context'
+    unless @context.settings.path
+      puts "Invalid deployment unit (Missing path) in deployment file '#{deploy_file}'."
+      exit 1
+    end
     path = @context.resolve_vars([@context.settings.path])
     dir = File.join(@context.deployment_home, path.pop)
     @resources = {}
@@ -68,26 +72,37 @@ class Kb8DeployUnit
 
   def create_or_update(resource)
     if resource.exist?
-      unless @no_diff
-        if resource.up_to_date?
-          if resource_uses_changed_secret?(resource)
-            puts "Resource #{resource.kinds}/#{resource.name} uses changed secret, redeploying"
-          else
-            puts "No Change for #{resource.kinds}/#{resource.name}, Skipping."
-            return true
+      if resource.is_dirty?
+        puts "Previously failed resource, deleting #{resource.kinds}/#{resource.name}..."
+        resource.delete
+        create(resource)
+      else
+        # Check health and decide if we need to regard the diff...
+        unless @no_diff
+          if resource.up_to_date?
+            if resource_uses_changed_secret?(resource)
+              puts "Resource #{resource.kinds}/#{resource.name} uses changed secret, redeploying"
+            else
+              puts "No Change for #{resource.kinds}/#{resource.name}, Skipping."
+              return true
+            end
           end
         end
+        puts "Updating #{resource.kinds}/#{resource.name}..."
+        resource.update
+        @changed_resources << resource
+        puts '...done.'
       end
-      puts "Updating #{resource.kinds}/#{resource.name}..."
-      resource.update
-      @changed_resources << resource
-      puts '...done.'
     else
-      puts "Creating #{resource.kinds}/#{resource.name}..."
-      resource.create
-      @changed_resources << resource
-      puts '...done.'
+      create(resource)
     end
+  end
+
+  def create(resource)
+    puts "Creating #{resource.kinds}/#{resource.name}..."
+    resource.create
+    @changed_resources << resource
+    puts '...done.'
   end
 
   def deploy
@@ -96,7 +111,7 @@ class Kb8DeployUnit
         resource = Kb8Resource.create_from_name(resource_name)
         if resource.exist?
           puts "Deleting #{resource.kinds}/#{resource.name}..."
-          resource.delete()
+          resource.delete
         end
       end
     end
