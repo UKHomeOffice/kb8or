@@ -10,6 +10,8 @@ class Kb8Resource
   KB8_MD5_KEY = 'kb8_md5'
   RESOURCE_POD = 'Pod'
   RESOURCE_RC = 'ReplicationController'
+  RESOURCE_NAMESPACE = 'Namespace'
+  KB8_DIRTY_KEY = 'kb8_failing'
 
   attr_accessor :file,
                 :kind,
@@ -64,10 +66,6 @@ class Kb8Resource
     update_md5
   end
 
-  def get_deployed_resources(kinds, all_namespaces=false)
-    @resource_cache[@kinds] = Kb8Run.get_resource_data(kinds, all_namespaces)
-  end
-
   def update_md5
     @md5 = Digest::MD5.hexdigest(YAML.dump(@yaml_data))
     unless @yaml_data['metadata']['labels']
@@ -78,11 +76,22 @@ class Kb8Resource
 
   def mark_dirty
     # We'll ensure this resource will get replaced at next deploy...
-    patch = { 'metadata' => {'labels' => { KB8_MD5_KEY => ''}}}
-    begin
-      Kb8Run.patch(patch, @kind, @name)
-    rescue
+    patch = { 'metadata' => {'labels' => { KB8_MD5_KEY => '', KB8_DIRTY_KEY => 'TRUE'}}}
+    Kb8Run.patch(patch, @kind, @name)
+    refresh_data
+  end
+
+  def is_dirty?
+    if exist?
+      data['metadata'] && data['metadata'].has_key?('labels') &&
+          data['metadata']['labels'].has_key?(KB8_DIRTY_KEY)
+    else
+      false
     end
+  end
+
+  def refresh_data
+    exist?(true)
   end
 
   def data(refresh=false)
@@ -104,38 +113,45 @@ class Kb8Resource
 
   def exist?(refresh=false)
 
+    exists = false
     # Check the cache if required
     unless @resource_cache.has_key?(@kinds)
       refresh = true
     end
     if refresh
-      @resources_of_kind = get_deployed_resources(@kinds, namespace_defined?)
-    else
-      @resources_of_kind = @resource_cache[@kinds]
+      if @kind == RESOURCE_NAMESPACE
+        @resource_cache[@kinds] = Kb8Run.get_resource_data(@kinds, true)
+      elsif namespace_defined?
+        @resource_cache[@kinds] = Kb8Run.get_resource_data(@kinds, false, @namespace)
+      else
+        @resource_cache[@kinds] = Kb8Run.get_resource_data(@kinds, false)
+      end
     end
+    @resources_of_kind = @resource_cache[@kinds]
 
     # Check if the item exists
     @resources_of_kind['items'].each do |item|
       if item['metadata'] && item['metadata'].has_key?('name') && item['metadata']['name'] == @name
         if namespace_match?(item)
           @live_data = item
-          return true
+          exists = true
           break
         end
       end
     end
-    false
+    exists
   end
 
   def namespace_match?(item)
+    match = false
     if @namespace
       if item['metadata'] && item['metadata'].has_key?('namespace') && item['metadata']['namespace'] == @namespace
-        return true
+        match = true
       end
     else
-      return true
+      match = true
     end
-    false
+    match
   end
 
   def up_to_date?
