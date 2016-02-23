@@ -43,6 +43,15 @@ class Kb8Controller < Kb8Resource
     def ==(other_obj)
       (self.to_s == other_obj.to_s)
     end
+
+    def [](key)
+      @selectors_hash[key]
+    end
+
+    def []=(key, value)
+      @selectors_hash[key] = value
+    end
+
   end
 
   def initialize(yaml_data, file, context)
@@ -58,10 +67,14 @@ class Kb8Controller < Kb8Resource
     unless yaml_data['spec']
       raise "Invalid YAML - Missing spec in file:'#{file}'."
     end
-    unless yaml_data['spec'].has_key?('selector')
-      raise "Invalid YAML - Missing selectors in file:'#{file}'."
+    if yaml_data['spec'].has_key?('selector')
+      @selectors = Selectors.new(yaml_data['spec']['selector'])
+    elsif yaml_data['spec']['template']['metadata'].has_key?('labels')
+      @selectors = Selectors.new(yaml_data['spec']['template']['metadata']['labels'])
     end
-    @selectors = Selectors.new(yaml_data['spec']['selector'])
+    unless @yaml_data['metadata']['labels']
+      @yaml_data['metadata']['labels'] = {}
+    end
     @intended_replicas = yaml_data['spec']['replicas']
     @pods = []
 
@@ -118,12 +131,10 @@ class Kb8Controller < Kb8Resource
     # Add new deployment id and name etc...
     @name = "#{@original_name}-#{deploy_id}"
     @yaml_data['metadata']['name'] = @name
-    unless @yaml_data['metadata']['labels']
-      @yaml_data['metadata']['labels'] = {}
-    end
     @yaml_data['metadata']['labels'][ORIGINAL_NAME] = @original_name
     @yaml_data['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
-    @yaml_data['spec']['selector'][DEPLOYMENT_LABEL] = deploy_id
+    @selectors['DEPLOYMENT_LABEL'] = deploy_id
+    @yaml_data['spec']['selector'] = @selectors.selectors_hash
     @yaml_data['spec']['template']['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
   end
 
