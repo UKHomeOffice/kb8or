@@ -58,10 +58,11 @@ class Kb8Controller < Kb8Resource
     unless yaml_data['spec']
       raise "Invalid YAML - Missing spec in file:'#{file}'."
     end
-    unless yaml_data['spec'].has_key?('selector')
-      raise "Invalid YAML - Missing selectors in file:'#{file}'."
+    if yaml_data['spec'].has_key?('selector')
+      @selectors = Selectors.new(yaml_data['spec']['selector'])
+    else
+      @selectors = Selectors.new(yaml_data['spec']['metadata'])
     end
-    @selectors = Selectors.new(yaml_data['spec']['selector'])
     @intended_replicas = yaml_data['spec']['replicas']
     @pods = []
 
