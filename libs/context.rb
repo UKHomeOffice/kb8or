@@ -57,7 +57,12 @@ class Context
     end
     # Now finaly, update the settings now we know the environment!
     @settings = @settings.new(@vars) if @vars
-
+    # Set the namespace as a known variable
+    unless @vars['namespace']
+      if @vars['Kb8Context'] && @vars['Kb8Context']['namespace']
+        @vars['namespace'] = @vars['Kb8Context']['namespace']
+      end
+    end
     debug "vars=#{vars}"
     @vars
   end

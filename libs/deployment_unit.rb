@@ -16,7 +16,9 @@ class Kb8DeployUnit
     @no_diff = no_diff
     @only_deploy = only_deploy
     debug 'Loading new context'
+    data = context.resolve_vars(data.dup)
     @context = context.new(data)
+    @context.update_vars(data)
     debug 'Got new context'
     unless @context.settings.path
       puts "Invalid deployment unit (Missing path) in deployment file '#{deploy_file}'."
