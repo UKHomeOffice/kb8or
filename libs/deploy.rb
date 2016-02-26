@@ -51,6 +51,7 @@ class Deploy
       exit 1
     end
     # Add any variables set at the start of the deploy...
+    deploy_data = @context.resolve_vars(deploy_data.dup)
     @context.update_vars(deploy_data)
 
     # Load deployment information for each 'deploy' (kb8 directory) that exists
