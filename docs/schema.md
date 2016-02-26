@@ -9,12 +9,14 @@
   3.2 [EnvFileGlobPath](#envfileglobpath)  
   3.2 [FileSecrets](#filesecrets)  
   3.3 [DefaultEnvName](#defaultenvname)  
+  3.4 [MaxContainerRestarts](#maxcontainerrestarts)  
   3.5 [MultiTemplate](#multitemplate)  
   3.6 [NoAutomaticUpgrade](#noautomaticupgrade)  
   3.7 [NoControllerOk](#nocontrollerok)  
   3.8 [NoRollingUpdate](#norollingupdate)  
   3.9 [Path](#path)  
   3.10 [PrivateRegistry](#privateregistry)  
+  3.20 [RestartBackOffSeconds](#restartbackoffseconds)
 4. [Functions](#functions)  
   4.1 [Fn::FileData](#fnfiledata)  
   4.2 [Fn::FileIncludePaths](#fnfileincludepaths)  
@@ -153,6 +155,20 @@ Kb8Context:
   cluster: prod_cluster
   user: prod_user
   namespace: prod
+```
+
+### MaxContainerRestarts
+
+#### Scope: 'Path:' within a_deployment.yaml'
+
+Will allow a complex application a grace number of restarts before considering the deployment a failure.
+ 
+#### Simple Example
+
+```yaml
+Deploys:
+  - Path: kb8resources/my_odd_app
+    MaxContainerRestarts: 30
 ```
 
 ### MultiTemplate
@@ -308,6 +324,19 @@ Normally container images will be pulled with this substituted value when a "con
 
 ```yaml
 PrivateRegistry: https://private-reg.notprod.com:50000
+```
+
+### RestartBackOffSeconds
+
+#### Scope: Default.yaml, within a_deployment.yaml
+
+Will wait for the specified number of seconds before continuing to monitor a pod after a pod has restarted.
+The default is 10. 
+
+```yaml
+Deploys:
+  - path: k8resources/myapp
+    RestartBackOffSeconds: 20
 ```
 
 ### UsePrivateRegistry
