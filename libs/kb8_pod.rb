@@ -48,16 +48,8 @@ class Kb8Pod < Kb8Resource
       end
     end
     if context
-      if defined?(context.max_container_restarts)
-        @max_container_restarts = context.max_container_restarts
-      else
-        @max_container_restarts = MAX_CONTAINER_RESTARTS
-      end
-      if defined?(context.restart_back_off_seconds)
-        @restart_back_off_seconds = context.restart_back_off_seconds
-      else
-        @restart_back_off_seconds = RESTART_BACK_OFF_SECONDS
-      end
+      @max_container_restarts = context.settings.max_container_restarts ||= MAX_CONTAINER_RESTARTS
+      @restart_back_off_seconds = context.settings.restart_back_off_seconds ||= RESTART_BACK_OFF_SECONDS
 
       pod_data['spec']['containers'].each do |item|
         container = Kb8ContainerSpec.new(item)
