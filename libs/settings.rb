@@ -16,6 +16,7 @@ class Settings
                 :file_secrets,
                 :kb8_context,
                 :kb8_server,
+                :max_container_restarts,
                 :multi_template,
                 :no_automatic_upgrade,
                 :no_controller_ok,
@@ -23,6 +24,7 @@ class Settings
                 :path,
                 :private_registry,
                 :recreate_services,
+                :restart_back_off_seconds,
                 :use_private_registry
 
   include Methadone::Main
