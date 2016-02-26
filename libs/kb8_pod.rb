@@ -48,12 +48,12 @@ class Kb8Pod < Kb8Resource
       end
     end
     if context
-      if context.defined?(context.max_container_restarts)
+      if defined?(context.max_container_restarts)
         @max_container_restarts = context.max_container_restarts
       else
         @max_container_restarts = MAX_CONTAINER_RESTARTS
       end
-      if context.defined?(context.restart_back_off_seconds)
+      if defined?(context.restart_back_off_seconds)
         @restart_back_off_seconds = context.restart_back_off_seconds
       else
         @restart_back_off_seconds = RESTART_BACK_OFF_SECONDS
