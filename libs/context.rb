@@ -55,6 +55,10 @@ class Context
         break
       end
     end
+    unless @vars
+      puts "Environment not found:#{@env_name} in #{@settings.env_file_glob_path}"
+      exit 1
+    end
     # Now finaly, update the settings now we know the environment!
     @settings = @settings.new(@vars) if @vars
 
