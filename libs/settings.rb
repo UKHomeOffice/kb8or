@@ -46,6 +46,8 @@ class Settings
     if File.exist?(defaults_file)
       debug 'Loading settings'
       @defaults = Kb8Utils.load_yaml(File.open(defaults_file))
+    else
+      @defaults = { 'EnvFileGlobPath' => './environments/*.yaml' }
     end
   end
 
