@@ -24,14 +24,16 @@ class Kb8Pod < Kb8Resource
   EVENT_REASONS = [EVENT_ERROR_PREFIX, EVENT_UNHEALTHY]
 
   FAIL_EVENT_ERROR_COUNT = 3
-  FAIL_CONTAINER_RESTART_COUNT = 3
-  RETRY_BACKOFF_SECONDS = 10
+  MAX_CONTAINER_RESTARTS = 3
+  RESTART_BACK_OFF_SECONDS = 10
 
   attr_reader :controller,
               :container_specs,
               :error_message,
               :failing_containers,
+              :max_container_restarts,
               :pod_data,
+              :restart_back_off_seconds,
               :restart_never,
               :volumes
 
@@ -40,7 +42,15 @@ class Kb8Pod < Kb8Resource
     @pod_data = pod_data
     @controller = rc
     @container_specs = []
+    if rc
+      unless context
+        context = rc.context
+      end
+    end
     if context
+      @max_container_restarts = context.settings.max_container_restarts ||= MAX_CONTAINER_RESTARTS
+      @restart_back_off_seconds = context.settings.restart_back_off_seconds ||= RESTART_BACK_OFF_SECONDS
+
       pod_data['spec']['containers'].each do |item|
         container = Kb8ContainerSpec.new(item)
         container.update(context)
@@ -183,15 +193,15 @@ class Kb8Pod < Kb8Resource
           end
         end
         if container_status['restartCount']
-          if container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
+          if container_status['restartCount'] >= max_container_restarts
             debug "Container restarting:'#{container_status['name']}'"
             update_failing_containers(container_status)
             condition_value = Kb8Pod::CONDITION_RESTARTING
           end
           if container_status['restartCount'] > 0
             show_container_logs(container_status['name'])
-            puts "...Detected restarting container:'#{container_status['name']}'. Backing off to check again in #{RETRY_BACKOFF_SECONDS}"
-            sleep RETRY_BACKOFF_SECONDS
+            puts "...Detected restarting container:'#{container_status['name']}'. Backing off to check again in #{restart_back_off_seconds}"
+            sleep restart_back_off_seconds
           end
         end
         # Can do something more generic - if no controller but for now:
@@ -226,7 +236,7 @@ class Kb8Pod < Kb8Resource
     if last_event && is_event_reason_relevant(last_event['reason'].to_s)
       debug "Event reason:#{last_event['reason']}, count:#{last_event['count']}"
       if last_event['count'] >= FAIL_EVENT_ERROR_COUNT ||
-          container_status['restartCount'] >= FAIL_CONTAINER_RESTART_COUNT
+          container_status['restartCount'] >= max_container_restarts
         # Concatenate all error messages for this POD:
         all_events.each do | event |
           update_error(event['message']) if is_event_reason_relevant(event['reason'])
