@@ -15,7 +15,7 @@ class Kb8or
   include Methadone::CLILogging
 
   VERSION_STRING = File.read(File.join(KB8_HOME, 'version'))
-  KB8_BANNER = "Kb8or:v%s"
+  KB8_BANNER = 'Kb8or:v%s'
 
   version     VERSION_STRING
   description 'Will create OR update a kb8 application in a re-runnable way'
@@ -32,12 +32,6 @@ class Kb8or
 
     begin
       puts KB8_BANNER % VERSION_STRING
-      if options[:tunnel]
-        tunnel = Tunnel.new(options[:tunnel],
-                            options[:tunnel_options],
-                            deploy.context)
-        tunnel.create unless options[:close_tunnel]
-      end
       if options[:noop]
         puts 'Noop, Deployment files parse OK.'
       else
@@ -46,14 +40,6 @@ class Kb8or
     rescue TypeError, NameError => e
       puts "Kb8or bug:#{e.message}\n#{e.backtrace.inspect}"
       raise
-    ensure
-      if options[:close_tunnel] && options[:tunnel]
-        tunnel.close
-      else
-        unless options[:leave_tunnel]
-          tunnel.close if options[:tunnel]
-        end
-      end
     end
   end
 
@@ -67,6 +53,10 @@ class Kb8or
 
   opts.on('-e ENVIRONMENT','--environment','Specify the environment') do |env_name|
     options[:env_name] = env_name
+  end
+
+  opts.on('-c CONTEXT','--context','Specify the context') do |context_name|
+    options[:context_name] = context_name
   end
 
   opts.on('-s VARIABLES', '--set-variables', 'A comma separated list of variable=value') do |variables|
@@ -85,28 +75,8 @@ class Kb8or
     options[:variables] = variable_hash
   end
 
-  opts.on('-t TUNNEL',
-          '--tunnel',
-          'An ssh server to tunnel through') do |tunnel|
-    options[:tunnel] = tunnel
-  end
-
-  opts.on('-o SSH_OPTIONS',
-          '--tunnel-options',
-          'Any ssh options e.g. "-i ~/.ssh/id_project_key" (NB Quotes)') do |tunnel_opts|
-    options[:tunnel_options] = tunnel_opts
-  end
-
-  opts.on('-l', '--leave-tunnel', 'Leave tunnel') do
-    options[:leave_tunnel] = true
-  end
-
   opts.on('-n', '--noop', 'Just load deploy files (or create a tunnel)') do
     options[:noop] = true
-  end
-
-  opts.on('-c', '--close-tunnel', 'Close any tunnel opened previously') do
-    options[:close_tunnel] = true
   end
 
   opts.on('-d DEPLOY_ONLY_CSV',

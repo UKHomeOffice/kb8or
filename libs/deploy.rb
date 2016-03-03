@@ -28,6 +28,12 @@ class Deploy
     settings = Settings.new(deploy_home)
     settings.update(deploy_data)
 
+    if options[:context_name]
+      @kb8context = Kb8Context.new(options[:context_name])
+      # Ensure the settings are here got the command line context:
+      settings.update({ 'kb8_context' => @kb8context})
+    end
+
     # Load container image version information (per image name)
     if settings.container_version_glob_path
       # TODO: check if version path is rooted...
@@ -46,10 +52,22 @@ class Deploy
 
     # This call is crucial as it populates the environment the first time
     # NB The environment can be set as a default setting...
-    unless @context.environment
-      puts 'No environment set, either specify environment option (-e) or a default environment in Defaults.yaml.'
+    if @context.environment_file?
+      if !@kb8context
+        @kb8context = Kb8Context.new(@context.settings.kb8_context)
+      end
+    end
+
+    if (!@context.environment_file?) && (options[:env_name])
+      puts "No environment found for '#{env_name}', specify environment option (-e)."
       exit 1
     end
+
+    unless @kb8context
+      puts 'Must set Kb8Context in environment or use -c option.'
+      exit 1
+    end
+
     # Add any variables set at the start of the deploy...
     deploy_data = @context.resolve_vars(deploy_data.dup)
     @context.update_vars(deploy_data)
@@ -62,23 +80,7 @@ class Deploy
 
   # Method to carry out the deployments
   def deploy
-    if @context.settings.kb8_server && @context.settings.kb8_context
-      puts 'Can\'t specify both Kb8Server and Kb8Context (use Kb8Context)'
-      exit 1
-    end
-    context_set = false
-    if @context.settings.kb8_context
-      Kb8Run.update_context(Kb8Context.new(@context.settings.kb8_context))
-      context_set = true
-    end
-    if @context.settings.kb8_server
-      Kb8Run.update_environment(@context.env_name, @context.settings.kb8_server)
-      context_set = true
-    end
-    unless context_set
-      puts 'Must set Kb8Context for environment'
-      exit 1
-    end
+    Kb8Run.update_context(@kb8context)
     @deploy_units.each do | deploy_unit |
       deploy_unit.deploy
     end
