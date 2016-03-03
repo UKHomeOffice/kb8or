@@ -30,8 +30,10 @@ class Context
     @env_name = env_name || settings.default_env_name
     @vars = vars
     @overridden_vars = overridden_vars
+    @environment_file = nil
   end
 
+  # This is a method as we may need variables to find the environment file...
   def environment
     return @vars unless @vars.nil?
 
@@ -52,11 +54,15 @@ class Context
         @vars = @vars.merge(env_vars)
         @vars = @vars.merge(@overridden_vars)
         @vars['env'] = env_name
+        @environment_file = file_name
         break
       end
     end
     # Now finaly, update the settings now we know the environment!
-    @settings = @settings.new(@vars) if @vars
+    unless @vars
+      @vars = {}
+    end
+    @settings = @settings.new(@vars)
     # Set the namespace as a known variable
     unless @vars['namespace']
       if @vars['Kb8Context'] && @vars['Kb8Context']['namespace']
@@ -65,6 +71,14 @@ class Context
     end
     debug "vars=#{vars}"
     @vars
+  end
+
+  def environment_file?
+    # Resolve the environment and any variables...
+    environment
+
+    # Return true only if a file in use
+    !@environment_file.nil?
   end
 
   def resolve_vars_in_file(file_path)
