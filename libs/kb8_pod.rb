@@ -116,12 +116,12 @@ class Kb8Pod < Kb8Resource
   end
 
   def update_error(message)
+    if @error_message
+      @error_message << "\n"
+    else
+      @error_message = "\t"
+    end
     unless @error_message.to_s.include?(message)
-      if @error_message
-        @error_message << "\n"
-      else
-        @error_message = "\t"
-      end
       @error_message << message
     end
   end
