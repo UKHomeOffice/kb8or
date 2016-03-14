@@ -133,7 +133,7 @@ class Kb8Controller < Kb8Resource
     @yaml_data['metadata']['name'] = @name
     @yaml_data['metadata']['labels'][ORIGINAL_NAME] = @original_name
     @yaml_data['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
-    @selectors['DEPLOYMENT_LABEL'] = deploy_id
+    @selectors[DEPLOYMENT_LABEL] = deploy_id
     @yaml_data['spec']['selector'] = @selectors.selectors_hash
     @yaml_data['spec']['template']['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
   end
