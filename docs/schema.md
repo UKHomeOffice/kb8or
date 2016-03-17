@@ -6,9 +6,10 @@
 2. [Scope](#scope)  
 3. [Settings](#settings)  
   3.1 [ContainerVersionGlobPath](#containerversionglobpath)  
+  3.2 [DefaultEnvName](#defaultenvname)  
   3.2 [EnvFileGlobPath](#envfileglobpath)  
-  3.2 [FileSecrets](#filesecrets)  
-  3.3 [DefaultEnvName](#defaultenvname)  
+  3.3 [FileSecrets](#filesecrets)  
+  3.4 [Kb8Context](#kb8context)  
   3.4 [MaxContainerRestarts](#maxcontainerrestarts)  
   3.5 [MultiTemplate](#multitemplate)  
   3.6 [NoAutomaticUpgrade](#noautomaticupgrade)  
@@ -16,7 +17,7 @@
   3.8 [NoRollingUpdate](#norollingupdate)  
   3.9 [Path](#path)  
   3.10 [PrivateRegistry](#privateregistry)  
-  3.20 [RestartBackOffSeconds](#restartbackoffseconds)
+  3.20 [RestartBackOffSeconds](#restartbackoffseconds)  
 4. [Functions](#functions)  
   4.1 [Fn::FileData](#fnfiledata)  
   4.2 [Fn::FileIncludePaths](#fnfileincludepaths)  
@@ -136,7 +137,7 @@ Deploys:
       path: ../secrets/${env}/myapp_frontend_secrets
 ```
 
-### Kb8context
+### Kb8Context
 
 #### Scope: Environment file
 
@@ -144,11 +145,16 @@ Will be used to set the context for a deployment.
 
 #### Example
 
-The example below will create a ./kube/config entry for the server with the environment name which will then be used for 
-deployments. The cluster and user entries can be created in advance and augmented with other parameters where required. 
+The cluster and user entries can be created in advance and augmented with other parameters where required. 
 See [kubectl config set-cluster](https://cloud.google.com/container-engine/docs/kubectl/config-set-cluster).
 
-The Cluster and Namespace key values are mandatory. The user should be set when required. 
+In the first form a string is specified. Here, the existing kubectl context will be used directly. 
+```yaml
+Kb8Context: myservice-prod
+```
+
+The example below will create a ./kube/config entry for the server with the environment name which will then be used for 
+deployments. In this form, the Cluster and Namespace key values are mandatory. The user should be set when required. 
 
 ```yaml
 Kb8Context:
