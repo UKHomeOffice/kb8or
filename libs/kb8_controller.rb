@@ -68,9 +68,9 @@ class Kb8Controller < Kb8Resource
       raise "Invalid YAML - Missing spec in file:'#{file}'."
     end
     if yaml_data['spec'].has_key?('selector')
-      @selectors = Selectors.new(yaml_data['spec']['selector'])
+      @selectors = Selectors.new(yaml_data['spec']['selector'].dup)
     elsif yaml_data['spec']['template']['metadata'].has_key?('labels')
-      @selectors = Selectors.new(yaml_data['spec']['template']['metadata']['labels'])
+      @selectors = Selectors.new(yaml_data['spec']['template']['metadata']['labels'].dup)
     end
     unless @yaml_data['metadata']['labels']
       @yaml_data['metadata']['labels'] = {}
@@ -134,7 +134,7 @@ class Kb8Controller < Kb8Resource
     @yaml_data['metadata']['labels'][ORIGINAL_NAME] = @original_name
     @yaml_data['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
     @selectors[DEPLOYMENT_LABEL] = deploy_id
-    @yaml_data['spec']['selector'] = @selectors.selectors_hash
+    @yaml_data['spec']['selector'] = @selectors.selectors_hash.dup
     @yaml_data['spec']['template']['metadata']['labels'][DEPLOYMENT_LABEL] = deploy_id
   end
 

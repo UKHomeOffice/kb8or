@@ -27,6 +27,8 @@ class Kb8Context
         unless context_setting
           raise "Context '#{@name}' not found"
         end
+      when 'Kb8Context'
+        context_setting = context
       else
         raise 'Invalid context, expecting Hash'
     end
