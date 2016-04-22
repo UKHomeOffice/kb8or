@@ -14,14 +14,14 @@ class Kb8Run
   LEGACY_CONTEXT_NAME = 'kb8or-context'
   NAMESPACE_FLAG='--namespace=%s'
   CMD_KUBECTL = 'kubectl'
-  CMD_ROLLING_UPDATE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" rolling-update %s -f -"
+  CMD_ROLLING_UPDATE = "#{CMD_KUBECTL} rolling-update %s -f -"
   CMD_CREATE = "#{CMD_KUBECTL} create -f -"
   CMD_REPLACE = "#{CMD_KUBECTL} replace -f -"
   CMD_DELETE = "#{CMD_KUBECTL} delete %s/%s %s"
   CMD_GET_POD_LOGS = "#{CMD_KUBECTL} logs %s %s"
-  CMD_GET_POD = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get pods -l %s -o yaml"
-  CMD_GET_EVENTS = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get events -o yaml"
-  CMD_GET_RESOURCE = "#{CMD_KUBECTL} --api-version=\"#{API_VERSION}\" get %s -o yaml %s"
+  CMD_GET_POD = "#{CMD_KUBECTL} get pods -l %s -o yaml"
+  CMD_GET_EVENTS = "#{CMD_KUBECTL} get events -o yaml"
+  CMD_GET_RESOURCE = "#{CMD_KUBECTL} get %s -o yaml %s"
   CMD_DELETE_PODS = "#{CMD_KUBECTL} delete pods -l %s"
   CMD_PATCH_RESOURCE = "#{CMD_KUBECTL} patch %s %s -p '%s'"
   CMD_LABEL_RESOURCE = "#{CMD_KUBECTL} label %ss %s %s"
