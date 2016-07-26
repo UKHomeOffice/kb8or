@@ -1,4 +1,4 @@
-FROM ruby:2.1
+FROM ruby:2.1.9
 MAINTAINER Lewis Marshall <lewis@technoplusit.co.uk>
 
 # Update and install all of the required packages.
