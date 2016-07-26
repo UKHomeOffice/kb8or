@@ -13,7 +13,7 @@ function download() {
     done
 }
 
-download https://storage.googleapis.com/kubernetes-release/release/v1.3.0/bin/linux/amd64/kubect \
+download https://storage.googleapis.com/kubernetes-release/release/v1.3.0/bin/linux/amd64/kubectl \
          /usr/local/bin/kubectl \
          09cdb4e370cb5bc77428550ee5a2cf71
 
