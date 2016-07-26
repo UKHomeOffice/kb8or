@@ -51,6 +51,9 @@ class Kb8Pod < Kb8Resource
       @max_container_restarts = context.settings.max_container_restarts ||= MAX_CONTAINER_RESTARTS
       @restart_back_off_seconds = context.settings.restart_back_off_seconds ||= RESTART_BACK_OFF_SECONDS
 
+      if !pod_data.key?("spec") || !pod_data['spec'].key?("containers")
+        error 'Pod as specified doesn\'t match expected schema. Check that spec section and containers sub-section exist'
+      end
       pod_data['spec']['containers'].each do |item|
         container = Kb8ContainerSpec.new(item)
         container.update(context)
