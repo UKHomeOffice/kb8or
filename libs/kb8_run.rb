@@ -21,7 +21,7 @@ class Kb8Run
   CMD_GET_POD_LOGS = "#{CMD_KUBECTL} logs %s %s"
   CMD_GET_POD = "#{CMD_KUBECTL} get pods -l %s -o yaml"
   CMD_GET_EVENTS = "#{CMD_KUBECTL} get events -o yaml"
-  CMD_GET_RESOURCE = "#{CMD_KUBECTL} %s -o yaml %s"
+  CMD_GET_RESOURCE = "#{CMD_KUBECTL} get %s -o yaml %s"
   CMD_DELETE_PODS = "#{CMD_KUBECTL} delete pods -l %s"
   CMD_PATCH_RESOURCE = "#{CMD_KUBECTL} patch %s %s -p '%s'"
   CMD_LABEL_RESOURCE = "#{CMD_KUBECTL} label %ss %s %s"
