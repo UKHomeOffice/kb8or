@@ -58,9 +58,12 @@ class Kb8DeployUnit
     end
     debug "NoControllerOk:#{@context.settings.no_controller_ok}"
     unless @resources.has_key?('ReplicationController')
-      unless @context.settings.no_controller_ok
-        puts "Invalid deployment unit (Missing controller) in dir:#{dir}/*.yaml"
-        exit 1
+      unless @resources.has_key?('Deployment')
+        unless @context.settings.no_controller_ok
+          puts "Invalid deployment unit (Missing controller) in dir:#{dir}/*.yaml"
+          exit 1
+        end
+        puts "Deployment found updating..."
       end
     end
   end
@@ -123,12 +126,16 @@ class Kb8DeployUnit
     @resources.each do |key, resource_category|
       next if key == 'Pod'
       next if key == 'ReplicationController'
+      next if key == 'Deployment'
       resource_category.each do |resource|
         deploy_items << resource
       end
     end
     if @resources.has_key?('Pod')
       deploy_items == deploy_items.concat(@resources['Pod'])
+    end
+    if @resources.has_key?('Deployment')
+      deploy_items == deploy_items.concat(@resources['Deployment'])
     end
     if @resources.has_key?('ReplicationController')
       possible_items = @resources['ReplicationController']

@@ -10,6 +10,7 @@ class Kb8Resource
   KB8_MD5_KEY = 'kb8_md5'
   RESOURCE_POD = 'Pod'
   RESOURCE_RC = 'ReplicationController'
+  RESOURCE_DEPLOYMENT = 'Deployment'
   RESOURCE_NAMESPACE = 'Namespace'
   KB8_DIRTY_KEY = 'kb8_failing'
 
@@ -25,9 +26,12 @@ class Kb8Resource
                 :yaml_data
 
   def self.get_resource_from_data(kb8_data, file, context = nil)
+    p kb8_data['kind']
     case kb8_data['kind']
       when RESOURCE_RC
         kb8_resource = Kb8Controller.new(kb8_data, file, context)
+      when RESOURCE_DEPLOYMENT
+        kb8_resource = Kb8Deployment.new(kb8_data, file, context)
       when RESOURCE_POD
         kb8_resource = Kb8Pod.new(kb8_data, nil, file, context)
       else
@@ -120,6 +124,7 @@ class Kb8Resource
     end
     if refresh
       if @kind == RESOURCE_NAMESPACE
+        p @kinds
         @resource_cache[@kinds] = Kb8Run.get_resource_data(@kinds, true)
       elsif namespace_defined?
         @resource_cache[@kinds] = Kb8Run.get_resource_data(@kinds, false, @namespace)
